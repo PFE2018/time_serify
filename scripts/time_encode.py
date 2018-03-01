@@ -9,7 +9,9 @@ import sensor_msgs.point_cloud2 as pc2
 from cv_bridge import CvBridge, CvBridgeError
 import scipy.fftpack as fft
 from scipy.interpolate import interp1d
+from scipy.signal import butter, lfilter, filtfilt
 from time import time
+import pickle
 
 
 class SeriesConverter(object):
@@ -61,14 +63,15 @@ class SeriesConverter(object):
             # Interpolate at fixed frequency
             self.t_i = np.arange(0, self.wd, 1 / self.Fs)
             interp_x = interp1d(self.timeserie["time"], self.timeserie["values"][:, 0])
-            interp_x = interp_x(self.t_i)
+            interp_x = self.butter_bandpass_filter(interp_x(self.t_i), 0.5, 4)
             freq, fft_x = self.do_fft(interp_x)
             interp_y = interp1d(self.timeserie["time"], self.timeserie["values"][:, 1])
-            interp_y = interp_y(self.t_i)
+            interp_y = self.butter_bandpass_filter(interp_y(self.t_i), 0.5, 4)
             _, fft_y = self.do_fft(interp_y)
             interp_z = interp1d(self.timeserie["time"], self.timeserie["values"][:, 2])
-            interp_z = interp_z(self.t_i)
+            interp_z = self.butter_bandpass_filter(interp_z(self.t_i), 0.5, 4)
             _, fft_z = self.do_fft(interp_z)
+            pickle.dump((self.t_i, interp_x, interp_y, interp_z, freq, fft_x, fft_y, fft_z), open('fuckoff2.p', 'w'))
 
             # Plot real and interpolated signal
             plt.figure(1)
@@ -106,9 +109,22 @@ class SeriesConverter(object):
             plt.xlabel('Frequency (hz)')
             plt.ylabel('Amplitude z')
             plt.plot(freq, fft_z)
-
             plt.pause(0.000001)
             self.timeserie = dict({"time": [], "values": []})
+
+
+
+    def butter_bandpass(self, lowcut, highcut, order=5):
+        nyq = 0.5 * self.Fs
+        low = lowcut / nyq
+        high = highcut / nyq
+        b, a = butter(order, [low, high], btype = 'band')
+        return b, a
+
+    def butter_bandpass_filter(self, data, lowcut, highcut, order=5):
+        b, a = self.butter_bandpass(lowcut, highcut)
+        y = filtfilt(b, a, data)
+        return y
 
     def do_fft(self, values):
         Fs = self.Fs  # sampling rate
