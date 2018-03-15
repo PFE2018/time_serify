@@ -19,7 +19,7 @@ class SeriesConverter(object):
         self.image = None
         self.timeserie = dict({"time": [], "values": []})
         self.Fs = 20.0  # Herz
-        self.wd = 10.0  # seconds
+        self.wd = 300.0  # seconds
         self.t_i = []
 
     def get_values2d_cb(self, msg):
@@ -53,8 +53,9 @@ class SeriesConverter(object):
         # Store  points
         self.timeserie["time"].append(t)
         self.timeserie["values"].append(value)
+        print(str(t - self.timeserie["time"][0]) + 'seconds elapsed')
 
-        if t - self.timeserie["time"][0] > 10:
+        if t - self.timeserie["time"][0] > self.wd:
             # Transfer to numpy array
             self.timeserie["time"] = np.asarray(self.timeserie["time"])
             self.timeserie["time"] = self.timeserie["time"] - self.timeserie["time"][0]
@@ -63,15 +64,17 @@ class SeriesConverter(object):
             # Interpolate at fixed frequency
             self.t_i = np.arange(0, self.wd, 1 / self.Fs)
             interp_x = interp1d(self.timeserie["time"], self.timeserie["values"][:, 0])
-            interp_x = self.butter_bandpass_filter(interp_x(self.t_i), 0.5, 4)
+            interp_x = self.butter_bandpass_filter(interp_x(self.t_i), 0.75, 4)
             freq, fft_x = self.do_fft(interp_x)
             interp_y = interp1d(self.timeserie["time"], self.timeserie["values"][:, 1])
-            interp_y = self.butter_bandpass_filter(interp_y(self.t_i), 0.5, 4)
+            interp_y = self.butter_bandpass_filter(interp_y(self.t_i), 0.75, 4)
             _, fft_y = self.do_fft(interp_y)
             interp_z = interp1d(self.timeserie["time"], self.timeserie["values"][:, 2])
-            interp_z = self.butter_bandpass_filter(interp_z(self.t_i), 0.5, 4)
+            interp_z = self.butter_bandpass_filter(interp_z(self.t_i), 0.75, 4)
             _, fft_z = self.do_fft(interp_z)
-            pickle.dump((self.t_i, interp_x, interp_y, interp_z, freq, fft_x, fft_y, fft_z), open('fuckoff2.p', 'w'))
+            print('Enter filename...')
+            name = input()
+            pickle.dump((self.t_i, interp_x, interp_y, interp_z, freq, fft_x, fft_y, fft_z), open(name+'.p', 'wb'))
 
             # Plot real and interpolated signal
             plt.figure(1)
@@ -85,6 +88,10 @@ class SeriesConverter(object):
             plt.xlabel('Frequency (hz)')
             plt.ylabel('Amplitude x')
             plt.plot(freq, fft_x)
+
+
+            # float bpm=freq*60
+
 
             plt.figure(2)
             plt.clf()
@@ -114,6 +121,7 @@ class SeriesConverter(object):
 
 
 
+
     def butter_bandpass(self, lowcut, highcut, order=5):
         nyq = 0.5 * self.Fs
         low = lowcut / nyq
@@ -121,7 +129,7 @@ class SeriesConverter(object):
         b, a = butter(order, [low, high], btype = 'band')
         return b, a
 
-    def butter_bandpass_filter(self, data, lowcut, highcut, order=5):
+    def butter_bandpass_filter(self, data, lowcut, highcut):
         b, a = self.butter_bandpass(lowcut, highcut)
         y = filtfilt(b, a, data)
         return y
@@ -137,6 +145,7 @@ class SeriesConverter(object):
         Y = 2.0 / n * np.abs(Y[:n // 2])
 
         return frq, Y
+
 
 
 if __name__ == '__main__':
