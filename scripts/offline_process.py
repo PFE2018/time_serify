@@ -151,4 +151,5 @@ class OfflineProcess(object):
 
 if __name__ == '__main__':
     data = OfflineProcess('sam_still_300s_12-03-201_take2', show=False)
-    data.wvt_proc(data.interp_x)
+    data.wvt_proc(data.interp_z)
+    assert True
