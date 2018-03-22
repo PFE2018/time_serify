@@ -1,10 +1,11 @@
 import pickle
 import matplotlib.pyplot as plt
-from scipy import signal
+from scipy import signal, interpolate, io
 import numpy as np
 import pywt
 import math
 import pandas as pd
+import biosppy as bp
 
 
 def floor_log(num, base):
@@ -18,7 +19,8 @@ def floor_log(num, base):
 
 
 class OfflineProcess(object):
-    def __init__(self, pickled_file, show=True):
+    def __init__(self, pickled_file, ref_file, show=True):
+        self.largest_base = 0
         self.t_i = []
         self.interp_x = []
         self.interp_y = []
@@ -27,24 +29,35 @@ class OfflineProcess(object):
         self.fft_x = []
         self.fft_y = []
         self.fft_z = []
-        self.data_import(pickled_file, show)
+        self.ref = []
+        # Select ref type to open
+        is_ref_mat = True if '.mat' in ref_file else False
+        self.data_import(pickled_file, ref_file, show, is_ref_mat)
 
     # Data import and show #
-    def data_import(self, pickle_name, show=True):
+    def data_import(self, pickle_name, refname, show=True, is_ref_mat=True):
         # Import data
         self.t_i, self.interp_x, self.interp_y, self.interp_z, self.freq, self.fft_x, self.fft_y, self.fft_z = pickle.load(
-            open(pickle_name + '.p', 'rb'))
+            open('../recordings/'+pickle_name + '.p', 'rb'))
         # Cut data to magnitude of 2
-        largest_base = floor_log(len(self.t_i), 2)
+        self.largest_base = floor_log(len(self.t_i), 2)
 
-        self.t_i = self.t_i[:largest_base]
-        self.interp_x = self.interp_x[:largest_base]
-        self.interp_y = self.interp_y[:largest_base]
-        self.interp_z = self.interp_z[:largest_base]
-        self.freq = self.freq[:largest_base]
-        self.fft_x = self.fft_x[:largest_base]
-        self.fft_y = self.fft_y[:largest_base]
-        self.fft_z = self.fft_z[:largest_base]
+        self.t_i = self.t_i[:self.largest_base]
+        self.interp_x = self.interp_x[:self.largest_base]
+        self.interp_y = self.interp_y[:self.largest_base]
+        self.interp_z = self.interp_z[:self.largest_base]
+        self.freq = self.freq[:self.largest_base]
+        self.fft_x = self.fft_x[:self.largest_base]
+        self.fft_y = self.fft_y[:self.largest_base]
+        self.fft_z = self.fft_z[:self.largest_base]
+        if is_ref_mat:
+            mat_ecg = io.loadmat('../recordings/'+refname)
+            self.ref = bp.ecg()
+        else:
+            self.ref = pd.DataFrame.from_csv('../recordings/'+refname)
+            filter_time = self.ref.index.values <= self.largest_base / 20.0
+            self.ref_hr = self.ref.values[filter_time].flatten()
+            self.ref_time = self.ref.index.values[filter_time]
 
         if show:
             # Plot real and interpolated signal
@@ -87,21 +100,10 @@ class OfflineProcess(object):
     # Wavelet processing and show #
     def wvt_proc(self, interp, show=True):
         num_level = 8
+        slct_lvl = 4
         wlt = pywt.Wavelet('db6')
         new_sig = pywt.swt(interp, wavelet=wlt, level=num_level)
 
-        # Get peaks-locs, compute interval
-
-        slct_lvl = 4
-        loc_idx = signal.find_peaks_cwt(new_sig[num_level-slct_lvl][1], np.arange(1, 10))
-        peaks = {'Time': loc_idx * 1.0 / 20.0}
-        peaks_df = pd.DataFrame(peaks)
-        hr = 60.0/(peaks_df.diff().rolling(20).mean().values)
-        hr_time = peaks_df.values
-        # Compute mean interval
-        plt.figure()
-        plt.plot(hr_time, hr)
-        plt.pause(0.000001)
         if show:
             plt.figure()
             plt.subplot(421)
@@ -129,10 +131,43 @@ class OfflineProcess(object):
             plt.title('Wavelet coefficient 8')
             plt.plot(self.t_i, new_sig[0][1])
 
+        # Get peaks-locs, compute interval
+        loc_idx = signal.find_peaks_cwt(new_sig[num_level - slct_lvl][1], np.arange(1, 10))
+        if show:
             # Plot slected wavelet coefficient peaks
-            plt.subplot(420+slct_lvl)
-            plt.plot(self.t_i[loc_idx], new_sig[num_level-slct_lvl][1][loc_idx])
+            plt.subplot(420 + slct_lvl)
+            plt.plot(self.t_i[loc_idx], new_sig[num_level - slct_lvl][1][loc_idx])
             plt.pause(0.000001)
+        peaks = {'Time': loc_idx * 1.0 / 20.0}
+        peaks_df = pd.DataFrame(peaks)
+
+        # Compute mean interval and get heart rate with sliding window
+        hr = (60.0 / (peaks_df.diff().rolling(10).mean().values)).flatten()
+        hr_time = peaks_df.values.flatten()
+        avoid_nan = ~np.isnan(hr)
+        # Fit data and ref together
+        self.ref_hr = self.ref_hr[self.ref_time >= hr_time[avoid_nan][0]]
+        self.ref_time = self.ref_time[self.ref_time >= hr_time[avoid_nan][0]]
+
+
+        # Get error with ref
+        interp_hr_f = interpolate.interp1d(hr_time[avoid_nan], hr[avoid_nan])
+        interp_hr = interp_hr_f(self.ref_time)
+        # Basic statistical analysis
+        error = abs(interp_hr - self.ref_hr)
+        error_m = np.mean(error)
+        error_std = np.std(error)
+        m, b = np.polyfit(self.ref_hr, interp_hr, 1)
+
+        # Show analysis
+        plt.figure()
+        plt.plot(self.ref_time, interp_hr)
+        plt.plot(self.ref_time, self.ref_hr)
+        plt.pause(0.000001)
+        plt.figure()
+        plt.plot(self.ref_hr, interp_hr,'*')
+        plt.plot(self.ref_hr, m * self.ref_hr + b, '-')
+        plt.pause(0.000001)
 
     # STFT processing and show #
     def stft_proc(self, sig, show=True):
@@ -147,8 +182,8 @@ class OfflineProcess(object):
             plt.pause(0.000001)
 
 
-
-
 if __name__ == '__main__':
-    data = OfflineProcess('sam_still_300s_12-03-201_take2', show=False)
-    data.wvt_proc(data.interp_x)
+    data = OfflineProcess('CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p', 'REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=False)
+
+    data.wvt_proc(data.interp_x, show=False)
+    assert True
