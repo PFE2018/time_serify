@@ -30,6 +30,8 @@ class OfflineProcess(object):
         self.fft_y = []
         self.fft_z = []
         self.ref = []
+        self.hr_kinect = []
+        self.kinect_time = []
         # Select ref type to open
         is_ref_mat = True if '.mat' in ref_file else False
         self.data_import(pickled_file, ref_file, show, is_ref_mat)
@@ -53,8 +55,8 @@ class OfflineProcess(object):
         if is_ref_mat:
             mat_ecg = io.loadmat('../recordings/'+refname)
             self.ref = bp.ecg.ecg(signal=mat_ecg['data'][0], sampling_rate=mat_ecg['samplerate'][0][0], show=False)
+            self.ref_time = self.ref[5]
             self.ref_hr = self.ref[6]
-            self.ref_time = np.arange(0, step=1.0/mat_ecg['samplerate'][0][0], stop=len(self.ref_hr)/1000.0)
         else:
             self.ref = pd.DataFrame.from_csv('../recordings/'+refname)
             filter_time = self.ref.index.values <= self.largest_base / 20.0
@@ -101,75 +103,89 @@ class OfflineProcess(object):
 
     # Wavelet processing and show #
     def wvt_proc(self, interp, show=True):
-        num_level = 8
-        slct_lvl = 4
-        wlt = pywt.Wavelet('db6')
-        new_sig = pywt.swt(interp, wavelet=wlt, level=num_level)
+        for axis in interp:
+            num_level = 8
+            slct_lvl = 4
+            wlt = pywt.Wavelet('db6')
+            new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
 
-        if show:
-            plt.figure()
-            plt.subplot(421)
-            plt.title('Wavelet coefficient 1')
-            plt.plot(self.t_i, new_sig[7][1])
-            plt.subplot(422)
-            plt.title('Wavelet coefficient 2')
-            plt.plot(self.t_i, new_sig[6][1])
-            plt.subplot(423)
-            plt.title('Wavelet coefficient 3')
-            plt.plot(self.t_i, new_sig[5][1])
-            plt.subplot(424)
-            plt.title('Wavelet coefficient 4')
-            plt.plot(self.t_i, new_sig[4][1])
-            plt.subplot(425)
-            plt.title('Wavelet coefficient 5')
-            plt.plot(self.t_i, new_sig[3][1])
-            plt.subplot(426)
-            plt.title('Wavelet coefficient 6')
-            plt.plot(self.t_i, new_sig[2][1])
-            plt.subplot(427)
-            plt.title('Wavelet coefficient 7')
-            plt.plot(self.t_i, new_sig[1][1])
-            plt.subplot(428)
-            plt.title('Wavelet coefficient 8')
-            plt.plot(self.t_i, new_sig[0][1])
+            if show:
+                plt.figure()
+                plt.subplot(421)
+                plt.title('Wavelet coefficient 1')
+                plt.plot(self.t_i, new_sig[7][1])
+                plt.subplot(422)
+                plt.title('Wavelet coefficient 2')
+                plt.plot(self.t_i, new_sig[6][1])
+                plt.subplot(423)
+                plt.title('Wavelet coefficient 3')
+                plt.plot(self.t_i, new_sig[5][1])
+                plt.subplot(424)
+                plt.title('Wavelet coefficient 4')
+                plt.plot(self.t_i, new_sig[4][1])
+                plt.subplot(425)
+                plt.title('Wavelet coefficient 5')
+                plt.plot(self.t_i, new_sig[3][1])
+                plt.subplot(426)
+                plt.title('Wavelet coefficient 6')
+                plt.plot(self.t_i, new_sig[2][1])
+                plt.subplot(427)
+                plt.title('Wavelet coefficient 7')
+                plt.plot(self.t_i, new_sig[1][1])
+                plt.subplot(428)
+                plt.title('Wavelet coefficient 8')
+                plt.plot(self.t_i, new_sig[0][1])
 
-        # Get peaks-locs, compute interval
-        loc_idx = signal.find_peaks_cwt(new_sig[num_level - slct_lvl][1], np.arange(1, 10))
-        if show:
-            # Plot slected wavelet coefficient peaks
-            plt.subplot(420 + slct_lvl)
-            plt.plot(self.t_i[loc_idx], new_sig[num_level - slct_lvl][1][loc_idx])
-            plt.pause(0.000001)
-        peaks = {'Time': loc_idx * 1.0 / 20.0}
-        peaks_df = pd.DataFrame(peaks)
+            # Get peaks-locs, compute interval
+            loc_idx = signal.find_peaks_cwt(new_sig[num_level - slct_lvl][1], np.arange(1, 10))
+            if show:
+                # Plot slected wavelet coefficient peaks
+                plt.subplot(420 + slct_lvl)
+                plt.plot(self.t_i[loc_idx], new_sig[num_level - slct_lvl][1][loc_idx])
+                plt.pause(0.000001)
+            peaks = {'Time': loc_idx * 1.0 / 20.0}
+            peaks_df = pd.DataFrame(peaks)
 
-        # Compute mean interval and get heart rate with sliding window
-        hr = (60.0 / (peaks_df.diff().rolling(10).mean().values)).flatten()
-        hr_time = peaks_df.values.flatten()
-        avoid_nan = ~np.isnan(hr)
-        # Fit data and ref together
-        self.ref_hr = self.ref_hr[self.ref_time >= hr_time[avoid_nan][0]]
-        self.ref_time = self.ref_time[self.ref_time >= hr_time[avoid_nan][0]]
+            # Compute mean interval and get heart rate with sliding window
+            hr = (60.0 / (peaks_df.diff().rolling(10).mean().values)).flatten()
+            hr_time = peaks_df.values.flatten()
+            # Fit data and ref together
+            avoid_nan = ~np.isnan(hr)
+            hr = hr[avoid_nan]
+            hr_time = hr_time[avoid_nan]
+            self.ref_hr = self.ref_hr[self.ref_time >= hr_time[0]]
+            self.ref_time = self.ref_time[self.ref_time >= hr_time[0]]
+            hr = hr[hr_time >= self.ref_time[0]]
+            hr_time = hr_time[hr_time >= self.ref_time[0]]
 
 
-        # Get error with ref
-        interp_hr_f = interpolate.interp1d(hr_time[avoid_nan], hr[avoid_nan])
-        interp_hr = interp_hr_f(self.ref_time)
-        # Basic statistical analysis
-        error = abs(interp_hr - self.ref_hr)
-        error_m = np.mean(error)
-        error_std = np.std(error)
-        m, b = np.polyfit(self.ref_hr, interp_hr, 1)
+            # Get error with ref
+            interp_ref_f = interpolate.interp1d(self.ref_time, self.ref_hr)
+            interp_ref = interp_ref_f(hr_time)
+            # Basic statistical analysis
+            error = abs(interp_ref - hr)
+            error_m = np.mean(error)
+            error_std = np.std(error)
+            m, b = np.polyfit(interp_ref, hr, 1)
 
-        # Show analysis
-        plt.figure()
-        plt.plot(self.ref_time, interp_hr)
-        plt.plot(self.ref_time, self.ref_hr)
-        plt.pause(0.000001)
-        plt.figure()
-        plt.plot(self.ref_hr, interp_hr,'*')
-        plt.plot(self.ref_hr, m * self.ref_hr + b, '-')
-        plt.pause(0.000001)
+            self.hr_kinect.append(hr)
+            self.kinect_time.append(hr_time)
+
+            if show:
+                # Show analysis
+                plt.figure()
+                plt.plot(hr_time, hr)
+                plt.plot(hr_time, interp_ref)
+                plt.legend(['Kinect measurement', 'ECG Ground truth'])
+                plt.pause(0.000001)
+                plt.figure()
+                plt.plot(hr_time, error)
+                plt.pause(0.000001)
+                # plt.figure()
+                # plt.plot(interp_ref, hr,'*')
+                # plt.plot(interp_ref, m * interp_ref + b, '-')
+                # plt.pause(0.000001)
+
 
     # STFT processing and show #
     def stft_proc(self, sig, show=True):
@@ -185,6 +201,42 @@ class OfflineProcess(object):
 
 
 if __name__ == '__main__':
-    data = OfflineProcess('CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p', 'REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=False)
-    data.wvt_proc(data.interp_x, show=False)
+    data = OfflineProcess('CHAISE_LEMAY_RAPHAEL_2018_03_22_20_22.p', 'REF_CHAISE_LEMAY_RAPHAEL_2018_03_22_20_22.mat', show=False)
+    data.wvt_proc([data.interp_x, data.interp_y, data.interp_z], show=False)
+
+    # Get range fitting for kinect values
+    kinect_hr_end = min(data.kinect_time[0][-1], data.kinect_time[1][-1], data.kinect_time[2][-1])
+    data.ref_hr = data.ref_hr[data.ref_time <= kinect_hr_end]
+    data.ref_time = data.ref_time[data.ref_time <= kinect_hr_end]
+
+    # interpolate axis over ref with right range
+    hr_x_f = interpolate.interp1d(data.kinect_time[0], data.hr_kinect[0], fill_value="extrapolate")
+    hr_y_f = interpolate.interp1d(data.kinect_time[1], data.hr_kinect[1], fill_value="extrapolate")
+    hr_z_f = interpolate.interp1d(data.kinect_time[2], data.hr_kinect[2], fill_value="extrapolate")
+
+    hr_x = np.array(hr_x_f(data.ref_time))
+    hr_y = np.array(hr_y_f(data.ref_time))
+    hr_z = np.array(hr_z_f(data.ref_time))
+    hr = np.array([hr_x, hr_y, hr_z])
+    mean_hr = np.mean(hr, axis=0)
+
+
+    # Plot results
+    plt.figure()
+    plt.plot(data.ref_time, data.ref_hr)
+    plt.plot(data.ref_time, hr_x)
+    plt.plot(data.ref_time, hr_y)
+    plt.plot(data.ref_time, hr_z)
+    plt.legend(['Ground  truth', 'HR x axis', 'HR y axis', 'HR z axis'])
+    plt.pause(0.000001)
+    plt.figure()
+    plt.plot(data.ref_time, data.ref_hr)
+    plt.plot(data.ref_time, mean_hr)
+    plt.pause(0.000001)
+    plt.figure()
+    plt.plot(data.ref_time, abs(data.ref_hr-mean_hr))
+    mean = np.mean(abs(data.ref_hr-mean_hr))
+    dev = np.std(abs(data.ref_hr-mean_hr))
+    plt.pause(0.000001)
+
     assert True
