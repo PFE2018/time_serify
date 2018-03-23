@@ -38,7 +38,7 @@ class OfflineProcess(object):
     def data_import(self, pickle_name, refname, show=True, is_ref_mat=True):
         # Import data
         self.t_i, self.interp_x, self.interp_y, self.interp_z, self.freq, self.fft_x, self.fft_y, self.fft_z = pickle.load(
-            open('../recordings/'+pickle_name + '.p', 'rb'))
+            open('../recordings/'+pickle_name, 'rb'))
         # Cut data to magnitude of 2
         self.largest_base = floor_log(len(self.t_i), 2)
 
@@ -52,7 +52,9 @@ class OfflineProcess(object):
         self.fft_z = self.fft_z[:self.largest_base]
         if is_ref_mat:
             mat_ecg = io.loadmat('../recordings/'+refname)
-            self.ref = bp.ecg()
+            self.ref = bp.ecg.ecg(signal=mat_ecg['data'][0], sampling_rate=mat_ecg['samplerate'][0][0], show=False)
+            self.ref_hr = self.ref[6]
+            self.ref_time = np.arange(0, step=1.0/mat_ecg['samplerate'][0][0], stop=len(self.ref_hr)/1000.0)
         else:
             self.ref = pd.DataFrame.from_csv('../recordings/'+refname)
             filter_time = self.ref.index.values <= self.largest_base / 20.0

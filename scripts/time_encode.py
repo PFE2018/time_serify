@@ -19,7 +19,7 @@ class SeriesConverter(object):
         self.image = None
         self.timeserie = dict({"time": [], "values": []})
         self.Fs = 20.0  # Herz
-        self.wd = 120.0  # seconds
+        self.wd = 300.0  # seconds
         self.t_i = []
 
     def get_values2d_cb(self, msg):
