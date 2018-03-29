@@ -18,8 +18,9 @@ def floor_log(num, base):
     return base ** int(math.log(num, base))
 
 
-class OfflineProcess(object):
-    def __init__(self, pickled_file, ref_file, show=True):
+class Process(object):
+    def __init__(self, pickled_file='CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p',
+                 ref_file='REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=True, online=False):
         self.largest_base = 0
         self.t_i = []
         self.interp_x = []
@@ -32,13 +33,16 @@ class OfflineProcess(object):
         self.ref = []
         # Select ref type to open
         is_ref_mat = True if '.mat' in ref_file else False
-        self.data_import(pickled_file, ref_file, show, is_ref_mat)
+        if online:
+            pass
+        else:
+            self.data_import(pickled_file, ref_file, show, is_ref_mat)
 
     # Data import and show #
     def data_import(self, pickle_name, refname, show=True, is_ref_mat=True):
         # Import data
         self.t_i, self.interp_x, self.interp_y, self.interp_z, self.freq, self.fft_x, self.fft_y, self.fft_z = pickle.load(
-            open('../recordings/'+pickle_name, 'rb'))
+            open('../recordings/' + pickle_name, 'rb'))
         # Cut data to magnitude of 2
         self.largest_base = floor_log(len(self.t_i), 2)
 
@@ -51,12 +55,12 @@ class OfflineProcess(object):
         self.fft_y = self.fft_y[:self.largest_base]
         self.fft_z = self.fft_z[:self.largest_base]
         if is_ref_mat:
-            mat_ecg = io.loadmat('../recordings/'+refname)
+            mat_ecg = io.loadmat('../recordings/' + refname)
             self.ref = bp.ecg.ecg(signal=mat_ecg['data'][0], sampling_rate=mat_ecg['samplerate'][0][0], show=False)
             self.ref_hr = self.ref[6]
-            self.ref_time = np.arange(0, step=1.0/mat_ecg['samplerate'][0][0], stop=len(self.ref_hr)/1000.0)
+            self.ref_time = np.arange(0, step=1.0 / mat_ecg['samplerate'][0][0], stop=len(self.ref_hr) / 1000.0)
         else:
-            self.ref = pd.DataFrame.from_csv('../recordings/'+refname)
+            self.ref = pd.DataFrame.from_csv('../recordings/' + refname)
             filter_time = self.ref.index.values <= self.largest_base / 20.0
             self.ref_hr = self.ref.values[filter_time].flatten()
             self.ref_time = self.ref.index.values[filter_time]
@@ -151,7 +155,6 @@ class OfflineProcess(object):
         self.ref_hr = self.ref_hr[self.ref_time >= hr_time[avoid_nan][0]]
         self.ref_time = self.ref_time[self.ref_time >= hr_time[avoid_nan][0]]
 
-
         # Get error with ref
         interp_hr_f = interpolate.interp1d(hr_time[avoid_nan], hr[avoid_nan])
         interp_hr = interp_hr_f(self.ref_time)
@@ -167,7 +170,7 @@ class OfflineProcess(object):
         plt.plot(self.ref_time, self.ref_hr)
         plt.pause(0.000001)
         plt.figure()
-        plt.plot(self.ref_hr, interp_hr,'*')
+        plt.plot(self.ref_hr, interp_hr, '*')
         plt.plot(self.ref_hr, m * self.ref_hr + b, '-')
         plt.pause(0.000001)
 
@@ -185,6 +188,7 @@ class OfflineProcess(object):
 
 
 if __name__ == '__main__':
-    data = OfflineProcess('CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p', 'REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=False)
+    data = Process(pickled_file='CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p',
+                   ref_file='REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=False)
     data.wvt_proc(data.interp_x, show=False)
     assert True

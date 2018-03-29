@@ -12,15 +12,17 @@ from scipy.interpolate import interp1d
 from scipy.signal import butter, lfilter, filtfilt
 from time import time
 import pickle
+from scripts.offline_process import Process
 
 
 class SeriesConverter(object):
-    def __init__(self):
+    def __init__(self, online = False):
         self.image = None
         self.timeserie = dict({"time": [], "values": []})
         self.Fs = 20.0  # Herz
-        self.wd = 300.0  # seconds
+        self.wd = 20.0  # seconds
         self.t_i = []
+        self.online = online
 
     def get_values2d_cb(self, msg):
         bridge = CvBridge()
@@ -43,6 +45,9 @@ class SeriesConverter(object):
 
     def get_xyz_cb(self, msg):
         xyz = []
+
+        data = Process(show=True, online=True)
+        data.wvt_proc(data.interp_x, show=False)
 
         # Extract list of xyz coordinates of point cloud
         for p in pc2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
@@ -72,9 +77,14 @@ class SeriesConverter(object):
             interp_z = interp1d(self.timeserie["time"], self.timeserie["values"][:, 2])
             interp_z = self.butter_bandpass_filter(interp_z(self.t_i), 0.75, 4)
             _, fft_z = self.do_fft(interp_z)
-            print('Enter filename...')
-            name = input()
-            pickle.dump((self.t_i, interp_x, interp_y, interp_z, freq, fft_x, fft_y, fft_z), open(name+'.p', 'wb'))
+
+            if self.online:
+
+            else:
+                print('Enter filename...')
+                name = input()
+                pickle.dump((self.t_i, interp_x, interp_y, interp_z, freq, fft_x, fft_y, fft_z),
+                            open(name + '.p', 'wb'))
 
             # Plot real and interpolated signal
             plt.figure(1)
