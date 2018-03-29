@@ -12,17 +12,18 @@ from scipy.interpolate import interp1d
 from scipy.signal import butter, lfilter, filtfilt
 from time import time
 import pickle
-from scripts.offline_process import Process
+from scripts.offline_process import Process, floor_log
 
 
 class SeriesConverter(object):
     def __init__(self, online = False):
         self.image = None
-        self.timeserie = dict({"time": [], "values": []})
+        self.timeserie = dict({"time": np.empty([0, 1]), "values": np.empty([0, 3])})
         self.Fs = 20.0  # Herz
-        self.wd = 20.0  # seconds
+        self.wd = 10.0  # seconds
         self.t_i = []
         self.online = online
+        self.data = Process(show=True, online=True)
 
     def get_values2d_cb(self, msg):
         bridge = CvBridge()
@@ -46,8 +47,6 @@ class SeriesConverter(object):
     def get_xyz_cb(self, msg):
         xyz = []
 
-        data = Process(show=True, online=True)
-        data.wvt_proc(data.interp_x, show=False)
 
         # Extract list of xyz coordinates of point cloud
         for p in pc2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
@@ -56,15 +55,13 @@ class SeriesConverter(object):
         t = (msg.header.stamp.secs + msg.header.stamp.nsecs * 1e-9)
 
         # Store  points
-        self.timeserie["time"].append(t)
-        self.timeserie["values"].append(value)
+        self.timeserie["time"] = np.append(self.timeserie["time"], t)
+        self.timeserie["values"] = np.vstack([self.timeserie["values"], value])
         print(str(t - self.timeserie["time"][0]) + 'seconds elapsed')
 
         if t - self.timeserie["time"][0] > self.wd:
             # Transfer to numpy array
-            self.timeserie["time"] = np.asarray(self.timeserie["time"])
             self.timeserie["time"] = self.timeserie["time"] - self.timeserie["time"][0]
-            self.timeserie["values"] = np.asarray(self.timeserie["values"])
 
             # Interpolate at fixed frequency
             self.t_i = np.arange(0, self.wd, 1 / self.Fs)
@@ -79,7 +76,18 @@ class SeriesConverter(object):
             _, fft_z = self.do_fft(interp_z)
 
             if self.online:
-
+                self.data.largest_base = floor_log(len(self.t_i), 2)
+                self.data.t_i = self.t_i[:self.data.largest_base]
+                self.data.interp_x = interp_x[:self.data.largest_base]
+                self.data.interp_y = interp_y[:self.data.largest_base]
+                self.data.interp_z = interp_z[:self.data.largest_base]
+                self.data.freq = freq[:self.data.largest_base]
+                self.data.fft_x = fft_x[:self.data.largest_base]
+                self.data.fft_y = fft_y[:self.data.largest_base]
+                self.data.fft_z = fft_z[:self.data.largest_base]
+                self.data.show_data()
+                self.data.wvt_proc(show=False)
+                print(str(self.data.hr_kinect))
             else:
                 print('Enter filename...')
                 name = input()
@@ -127,7 +135,7 @@ class SeriesConverter(object):
             plt.ylabel('Amplitude z')
             plt.plot(freq, fft_z)
             plt.pause(0.000001)
-            self.timeserie = dict({"time": [], "values": []})
+            dict({"time": np.empty([0, 0]), "values": np.empty([0, 0])})
 
 
 
@@ -160,7 +168,7 @@ class SeriesConverter(object):
 
 if __name__ == '__main__':
     counter = 0
-    timeseries = SeriesConverter()
+    timeseries = SeriesConverter(online=True)
     plt.ion()
     plt.show()
     rospy.init_node("time_series_prcss")
