@@ -20,7 +20,7 @@ class SeriesConverter(object):
         self.image = None
         self.timeserie = dict({"time": np.empty([0, 1]), "values": np.empty([0, 3])})
         self.Fs = 20.0  # Herz
-        self.wd = 10.0  # seconds
+        self.wd = 300.0  # seconds
         self.t_i = []
         self.online = online
         self.data = Process(show=True, online=True)
@@ -168,7 +168,7 @@ class SeriesConverter(object):
 
 if __name__ == '__main__':
     counter = 0
-    timeseries = SeriesConverter(online=True)
+    timeseries = SeriesConverter(online=False)
     plt.ion()
     plt.show()
     rospy.init_node("time_series_prcss")
