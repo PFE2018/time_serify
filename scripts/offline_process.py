@@ -1,3 +1,10 @@
+####
+# FOR USE WITH PYTHON 3
+###
+
+
+
+
 import pickle
 import matplotlib.pyplot as plt
 from scipy import signal, interpolate, io
@@ -18,9 +25,9 @@ def floor_log(num, base):
     return base ** int(math.log(num, base))
 
 
-class Process(object):
+class OfflineProcess(object):
     def __init__(self, pickled_file='CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p',
-                 ref_file='REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=True, online=False):
+                 ref_file='REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=True):
         self.largest_base = 0
         self.t_i = []
         self.interp_x = []
@@ -37,11 +44,7 @@ class Process(object):
         self.kinect_time = []
         # Select ref type to open
         is_ref_mat = True if '.mat' in ref_file else False
-        if online:
-            self.online = True
-        else:
-            self.online = False
-            self.data_import(pickled_file, ref_file, show, is_ref_mat)
+        self.data_import(pickled_file, ref_file, show, is_ref_mat)
 
     # Data import and show #
     def data_import(self, pickle_name, refname, show=True, is_ref_mat=True):
@@ -64,7 +67,6 @@ class Process(object):
             self.ref = bp.ecg.ecg(signal=mat_ecg['data'][0], sampling_rate=mat_ecg['samplerate'][0][0], show=False)
             self.ref_time = self.ref[5]
             self.ref_hr = self.ref[6]
-            self.ref_time = np.arange(0, step=1.0 / mat_ecg['samplerate'][0][0], stop=len(self.ref_hr) / 1000.0)
 
         else:
             self.ref = pd.DataFrame.from_csv('../recordings/' + refname)
@@ -116,7 +118,7 @@ class Process(object):
     # Wavelet processing and show #
     def wvt_proc(self, show=True):
         num_level = int(np.log2(self.largest_base))
-        slct_lvl = 4
+        slct_lvl = 5
         for axis in [self.interp_x, self.interp_y, self.interp_z]:
             wlt = pywt.Wavelet('db6')
             new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
@@ -156,31 +158,27 @@ class Process(object):
             peaks_df = pd.DataFrame(peaks)
 
             # Compute mean interval and get heart rate with sliding window
-            if self.online:
-                hr = (60.0 / (peaks_df.diff().mean().values)).flatten()
-            else:
-                hr = (60.0 / (peaks_df.diff().rolling(10).mean().values)).flatten()
+            hr = (60.0 / (peaks_df.diff().rolling(10).mean().values)).flatten()
             hr_time = peaks_df.values.flatten()
 
-            if not self.online:
-                # Fit data and ref together
-                avoid_nan = ~np.isnan(hr)
-                hr = hr[avoid_nan]
-                hr_time = hr_time[avoid_nan]
-                self.ref_hr = self.ref_hr[self.ref_time >= hr_time[0]]
-                self.ref_time = self.ref_time[self.ref_time >= hr_time[0]]
-                hr = hr[hr_time >= self.ref_time[0]]
-                hr_time = hr_time[hr_time >= self.ref_time[0]]
+            # Fit data and ref together
+            avoid_nan = ~np.isnan(hr)
+            hr = hr[avoid_nan]
+            hr_time = hr_time[avoid_nan]
+            self.ref_hr = self.ref_hr[self.ref_time >= hr_time[0]]
+            self.ref_time = self.ref_time[self.ref_time >= hr_time[0]]
+            hr = hr[hr_time >= self.ref_time[0]]
+            hr_time = hr_time[hr_time >= self.ref_time[0]]
 
 
-                # Get error with ref
-                interp_ref_f = interpolate.interp1d(self.ref_time, self.ref_hr)
-                interp_ref = interp_ref_f(hr_time)
-                # Basic statistical analysis
-                error = abs(interp_ref - hr)
-                error_m = np.mean(error)
-                error_std = np.std(error)
-                m, b = np.polyfit(interp_ref, hr, 1)
+            # Get error with ref
+            interp_ref_f = interpolate.interp1d(self.ref_time, self.ref_hr)
+            interp_ref = interp_ref_f(hr_time)
+            # Basic statistical analysis
+            error = abs(interp_ref - hr)
+            error_m = np.mean(error)
+            error_std = np.std(error)
+            m, b = np.polyfit(interp_ref, hr, 1)
 
             self.hr_kinect.append(hr)
             self.kinect_time.append(hr_time)
@@ -189,18 +187,16 @@ class Process(object):
                 # Show analysis
                 plt.figure()
                 plt.plot(hr_time, hr)
-                if self.online:
-                    plt.plot(hr_time, interp_ref)
+                plt.plot(hr_time, interp_ref)
                 plt.legend(['Kinect measurement', 'ECG Ground truth'])
                 plt.pause(0.000001)
-                if self.online:
-                    plt.figure()
-                    plt.plot(hr_time, error)
-                    plt.pause(0.000001)
-                    # plt.figure()
-                    # plt.plot(interp_ref, hr,'*')
-                    # plt.plot(interp_ref, m * interp_ref + b, '-')
-                    # plt.pause(0.000001)
+                plt.figure()
+                plt.plot(hr_time, error)
+                plt.pause(0.000001)
+                # plt.figure()
+                # plt.plot(interp_ref, hr,'*')
+                # plt.plot(interp_ref, m * interp_ref + b, '-')
+                # plt.pause(0.000001)
 
 
     # STFT processing and show #
@@ -217,9 +213,9 @@ class Process(object):
 
 
 if __name__ == '__main__':
-    data = Process(pickled_file='CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p',
-                   ref_file='REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=False)
-    data.wvt_proc([data.interp_x], show=False)
+    data = OfflineProcess(pickled_file='SOL_COUTURIER_ELODIE_2018_03_29_19_10.p',
+                          ref_file='REF_SOL_COUTURIER_ELODIE_2018_03_29_19_10.mat', show=False)
+    data.wvt_proc(show=False)
 
     # Get range fitting for kinect values
     kinect_hr_end = min(data.kinect_time[0][-1], data.kinect_time[1][-1], data.kinect_time[2][-1])

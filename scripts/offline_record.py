@@ -12,18 +12,16 @@ from scipy.interpolate import interp1d
 from scipy.signal import butter, lfilter, filtfilt
 from time import time
 import pickle
-from scripts.offline_process import Process, floor_log
+from scripts.offline_process import OfflineProcess, floor_log
 
 
 class SeriesConverter(object):
-    def __init__(self, online = False):
+    def __init__(self):
         self.image = None
         self.timeserie = dict({"time": np.empty([0, 1]), "values": np.empty([0, 3])})
         self.Fs = 20.0  # Herz
         self.wd = 300.0  # seconds
-        self.t_i = []
-        self.online = online
-        self.data = Process(show=True, online=True)
+        self.data = OfflineProcess(show=True)
 
     def get_values2d_cb(self, msg):
         bridge = CvBridge()
@@ -75,69 +73,53 @@ class SeriesConverter(object):
             interp_z = self.butter_bandpass_filter(interp_z(self.t_i), 0.75, 4)
             _, fft_z = self.do_fft(interp_z)
 
-            if self.online:
-                self.data.largest_base = floor_log(len(self.t_i), 2)
-                self.data.t_i = self.t_i[:self.data.largest_base]
-                self.data.interp_x = interp_x[:self.data.largest_base]
-                self.data.interp_y = interp_y[:self.data.largest_base]
-                self.data.interp_z = interp_z[:self.data.largest_base]
-                self.data.freq = freq[:self.data.largest_base]
-                self.data.fft_x = fft_x[:self.data.largest_base]
-                self.data.fft_y = fft_y[:self.data.largest_base]
-                self.data.fft_z = fft_z[:self.data.largest_base]
-                self.data.show_data()
-                self.data.wvt_proc(show=False)
-                print(str(self.data.hr_kinect))
-            else:
-                print('Enter filename...')
-                name = input()
-                pickle.dump((self.t_i, interp_x, interp_y, interp_z, freq, fft_x, fft_y, fft_z),
-                            open(name + '.p', 'wb'))
 
-            # Plot real and interpolated signal
-            plt.figure(1)
-            plt.clf()
-            plt.subplot(211)
-            plt.xlabel('Time (s)')
-            plt.ylabel('Motion x (m)')
-            plt.plot(self.timeserie["time"], self.timeserie["values"][:, 0])
-            plt.plot(self.t_i, interp_x, '-r')
-            plt.subplot(212)
-            plt.xlabel('Frequency (hz)')
-            plt.ylabel('Amplitude x')
-            plt.plot(freq, fft_x)
+            print('Enter filename...')
+            name = input()
+            pickle.dump((self.t_i, interp_x, interp_y, interp_z, freq, fft_x, fft_y, fft_z),
+                        open(name + '.p', 'wb'))
 
-
-            # float bpm=freq*60
-
-
-            plt.figure(2)
-            plt.clf()
-            plt.subplot(211)
-            plt.xlabel('Time (s)')
-            plt.ylabel('Motion y (m)')
-            plt.plot(self.timeserie["time"], self.timeserie["values"][:, 1])
-            plt.plot(self.t_i, interp_y, '-r')
-            plt.subplot(212)
-            plt.xlabel('Frequency (hz)')
-            plt.ylabel('Amplitude y')
-            plt.plot(freq, fft_y)
-
-            plt.figure(3)
-            plt.clf()
-            plt.subplot(211)
-            plt.xlabel('Time (s)')
-            plt.ylabel('Motion z (m)')
-            plt.plot(self.timeserie["time"], self.timeserie["values"][:, 2])
-            plt.plot(self.t_i, interp_z, '-r')
-            plt.subplot(212)
-            plt.xlabel('Frequency (hz)')
-            plt.ylabel('Amplitude z')
-            plt.plot(freq, fft_z)
-            plt.pause(0.000001)
+            self.show_xyz()
             dict({"time": np.empty([0, 0]), "values": np.empty([0, 0])})
 
+    def show_xyz(self):
+        # Plot real and interpolated signal
+        plt.figure(1)
+        plt.clf()
+        plt.subplot(211)
+        plt.xlabel('Time (s)')
+        plt.ylabel('Motion x (m)')
+        plt.plot(self.timeserie["time"], self.timeserie["values"][:, 0])
+        plt.plot(self.t_i, self.data.interp_x, '-r')
+        plt.subplot(212)
+        plt.xlabel('Frequency (hz)')
+        plt.ylabel('Amplitude x')
+        plt.plot(self.data.freq, self.data.fft_x)
 
+        plt.figure(2)
+        plt.clf()
+        plt.subplot(211)
+        plt.xlabel('Time (s)')
+        plt.ylabel('Motion y (m)')
+        plt.plot(self.timeserie["time"], self.timeserie["values"][:, 1])
+        plt.plot(self.t_i, self.data.interp_y, '-r')
+        plt.subplot(212)
+        plt.xlabel('Frequency (hz)')
+        plt.ylabel('Amplitude y')
+        plt.plot(self.data.freq, self.data.fft_y)
+
+        plt.figure(3)
+        plt.clf()
+        plt.subplot(211)
+        plt.xlabel('Time (s)')
+        plt.ylabel('Motion z (m)')
+        plt.plot(self.timeserie["time"], self.timeserie["values"][:, 2])
+        plt.plot(self.t_i, self.data.interp_z, '-r')
+        plt.subplot(212)
+        plt.xlabel('Frequency (hz)')
+        plt.ylabel('Amplitude z')
+        plt.plot(self.data.freq, self.data.fft_z)
+        plt.pause(0.000001)
 
 
     def butter_bandpass(self, lowcut, highcut, order=5):

@@ -18,9 +18,8 @@ def floor_log(num, base):
     return base ** int(math.log(num, base))
 
 
-class Process(object):
-    def __init__(self, pickled_file='CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p',
-                 ref_file='REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=True, online=False):
+class OnlineProcess(object):
+    def __init__(self):
         self.largest_base = 0
         self.t_i = []
         self.interp_x = []
@@ -35,83 +34,6 @@ class Process(object):
         self.ref_time = []
         self.hr_kinect = []
         self.kinect_time = []
-        # Select ref type to open
-        is_ref_mat = True if '.mat' in ref_file else False
-        if online:
-            self.online = True
-        else:
-            self.online = False
-            self.data_import(pickled_file, ref_file, show, is_ref_mat)
-
-    # Data import and show #
-    def data_import(self, pickle_name, refname, show=True, is_ref_mat=True):
-        # Import data
-        self.t_i, self.interp_x, self.interp_y, self.interp_z, self.freq, self.fft_x, self.fft_y, self.fft_z = pickle.load(
-            open('../recordings/' + pickle_name, 'rb'))
-        # Cut data to magnitude of 2
-        self.largest_base = floor_log(len(self.t_i), 2)
-
-        self.t_i = self.t_i[:self.largest_base]
-        self.interp_x = self.interp_x[:self.largest_base]
-        self.interp_y = self.interp_y[:self.largest_base]
-        self.interp_z = self.interp_z[:self.largest_base]
-        self.freq = self.freq[:self.largest_base]
-        self.fft_x = self.fft_x[:self.largest_base]
-        self.fft_y = self.fft_y[:self.largest_base]
-        self.fft_z = self.fft_z[:self.largest_base]
-        if is_ref_mat:
-            mat_ecg = io.loadmat('../recordings/' + refname)
-            self.ref = bp.ecg.ecg(signal=mat_ecg['data'][0], sampling_rate=mat_ecg['samplerate'][0][0], show=False)
-            self.ref_time = self.ref[5]
-            self.ref_hr = self.ref[6]
-            self.ref_time = np.arange(0, step=1.0 / mat_ecg['samplerate'][0][0], stop=len(self.ref_hr) / 1000.0)
-
-        else:
-            self.ref = pd.DataFrame.from_csv('../recordings/' + refname)
-            filter_time = self.ref.index.values <= self.largest_base / 20.0
-            self.ref_hr = self.ref.values[filter_time].flatten()
-            self.ref_time = self.ref.index.values[filter_time]
-        if show:
-            self.show_data()
-
-    # Show data and related FFT
-    def show_data(self):
-        # Plot real and interpolated signal
-        plt.figure()
-        plt.subplot(321)
-        plt.title('X motion magnitude')
-        plt.xlabel('Time (s)')
-        plt.ylabel('Motion (m)')
-        plt.plot(self.t_i, self.interp_x, '-r')
-        plt.subplot(322)
-        plt.title('X Fourier transform')
-        plt.xlabel('Frequency (hz)')
-        plt.ylabel('Amplitude x')
-        plt.plot(self.freq, self.fft_x)
-
-        plt.subplot(323)
-        plt.title('Y motion magnitude')
-        plt.xlabel('Time (s)')
-        plt.ylabel('Motion (m)')
-        plt.plot(self.t_i, self.interp_y, '-r')
-        plt.subplot(324)
-        plt.title('Y Fourier transform')
-        plt.xlabel('Frequency (hz)')
-        plt.ylabel('Amplitude y')
-        plt.plot(self.freq, self.fft_y)
-
-        plt.subplot(325)
-        plt.title('Z motion magnitude')
-        plt.xlabel('Time (s)')
-        plt.ylabel('Motion (m)')
-        plt.plot(self.t_i, self.interp_z, '-r')
-        plt.subplot(326)
-        plt.title('Z Fourier transform')
-        plt.xlabel('Frequency (hz)')
-        plt.ylabel('Amplitude z')
-        plt.plot(self.freq, self.fft_z)
-
-        plt.pause(0.000001)
 
     # Wavelet processing and show #
     def wvt_proc(self, show=True):
@@ -156,31 +78,8 @@ class Process(object):
             peaks_df = pd.DataFrame(peaks)
 
             # Compute mean interval and get heart rate with sliding window
-            if self.online:
-                hr = (60.0 / (peaks_df.diff().mean().values)).flatten()
-            else:
-                hr = (60.0 / (peaks_df.diff().rolling(10).mean().values)).flatten()
+            hr = (60.0 / (peaks_df.diff().mean().values)).flatten()
             hr_time = peaks_df.values.flatten()
-
-            if not self.online:
-                # Fit data and ref together
-                avoid_nan = ~np.isnan(hr)
-                hr = hr[avoid_nan]
-                hr_time = hr_time[avoid_nan]
-                self.ref_hr = self.ref_hr[self.ref_time >= hr_time[0]]
-                self.ref_time = self.ref_time[self.ref_time >= hr_time[0]]
-                hr = hr[hr_time >= self.ref_time[0]]
-                hr_time = hr_time[hr_time >= self.ref_time[0]]
-
-
-                # Get error with ref
-                interp_ref_f = interpolate.interp1d(self.ref_time, self.ref_hr)
-                interp_ref = interp_ref_f(hr_time)
-                # Basic statistical analysis
-                error = abs(interp_ref - hr)
-                error_m = np.mean(error)
-                error_std = np.std(error)
-                m, b = np.polyfit(interp_ref, hr, 1)
 
             self.hr_kinect.append(hr)
             self.kinect_time.append(hr_time)
@@ -189,18 +88,8 @@ class Process(object):
                 # Show analysis
                 plt.figure()
                 plt.plot(hr_time, hr)
-                if self.online:
-                    plt.plot(hr_time, interp_ref)
                 plt.legend(['Kinect measurement', 'ECG Ground truth'])
                 plt.pause(0.000001)
-                if self.online:
-                    plt.figure()
-                    plt.plot(hr_time, error)
-                    plt.pause(0.000001)
-                    # plt.figure()
-                    # plt.plot(interp_ref, hr,'*')
-                    # plt.plot(interp_ref, m * interp_ref + b, '-')
-                    # plt.pause(0.000001)
 
 
     # STFT processing and show #
@@ -217,8 +106,8 @@ class Process(object):
 
 
 if __name__ == '__main__':
-    data = Process(pickled_file='CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p',
-                   ref_file='REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=False)
+    data = OnlineProcess(pickled_file='CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p',
+                         ref_file='REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=False)
     data.wvt_proc([data.interp_x], show=False)
 
     # Get range fitting for kinect values
