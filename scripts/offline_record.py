@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import rospy
 from sensor_msgs.msg import Image, PointCloud2
+from geometry_msgs.msg import Point
 import sensor_msgs.point_cloud2 as pc2
 from cv_bridge import CvBridge, CvBridgeError
 import scipy.fftpack as fft
@@ -43,6 +44,41 @@ class SeriesConverter(object):
             print(e)
 
     def get_xyz_cb(self, msg):
+
+        value = np.mean(np.asarray(msg), axis=0)
+        t = (msg.header.stamp.secs + msg.header.stamp.nsecs * 1e-9)
+
+        # Store  points
+        self.timeserie["time"] = np.append(self.timeserie["time"], t)
+        self.timeserie["values"] = np.vstack([self.timeserie["values"], value])
+        print(str(t - self.timeserie["time"][0]) + 'seconds elapsed')
+
+        if t - self.timeserie["time"][0] > self.wd:
+            # Transfer to numpy array
+            self.timeserie["time"] = self.timeserie["time"] - self.timeserie["time"][0]
+
+            # Interpolate at fixed frequency
+            self.t_i = np.arange(0, self.wd, 1 / self.Fs)
+            interp_x = interp1d(self.timeserie["time"], self.timeserie["values"][:, 0])
+            interp_x = self.butter_bandpass_filter(interp_x(self.t_i), 0.75, 4)
+            freq, fft_x = self.do_fft(interp_x)
+            interp_y = interp1d(self.timeserie["time"], self.timeserie["values"][:, 1])
+            interp_y = self.butter_bandpass_filter(interp_y(self.t_i), 0.75, 4)
+            _, fft_y = self.do_fft(interp_y)
+            interp_z = interp1d(self.timeserie["time"], self.timeserie["values"][:, 2])
+            interp_z = self.butter_bandpass_filter(interp_z(self.t_i), 0.75, 4)
+            _, fft_z = self.do_fft(interp_z)
+
+            print('Enter filename...')
+            name = input()
+            pickle.dump((self.t_i, interp_x, interp_y, interp_z, freq, fft_x, fft_y, fft_z),
+                        open(name + '.p', 'wb'))
+
+            self.show_xyz()
+            dict({"time": np.empty([0, 0]), "values": np.empty([0, 0])})
+
+
+    def get_pcl_cb(self, msg):
         xyz = []
 
 
@@ -155,5 +191,6 @@ if __name__ == '__main__':
     plt.show()
     rospy.init_node("time_series_prcss")
     # rospy.Subscriber("/kinect2/sd/image_depth", Image, timeseries.get_values2d_cb)
-    rospy.Subscriber("/filtered_pcloud", PointCloud2, timeseries.get_xyz_cb)
+    # rospy.Subscriber("/filtered_pcloud", PointCloud2, timeseries.get_pcl_cb)
+    rospy.Subscriber("/pcl_eigenvalues", Point, timeseries.get_xyz_cb)
     rospy.spin()
