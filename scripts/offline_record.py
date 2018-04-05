@@ -8,6 +8,7 @@ from sensor_msgs.msg import Image, PointCloud2
 from geometry_msgs.msg import Point
 import sensor_msgs.point_cloud2 as pc2
 from cv_bridge import CvBridge, CvBridgeError
+from time import time
 import scipy.fftpack as fft
 from scipy.interpolate import interp1d
 from scipy.signal import butter, lfilter, filtfilt
@@ -21,8 +22,16 @@ class SeriesConverter(object):
         self.image = None
         self.timeserie = dict({"time": np.empty([0, 1]), "values": np.empty([0, 3])})
         self.Fs = 20.0  # Herz
-        self.wd = 300.0  # seconds
+        self.wd = 10.0  # seconds
         self.data = OfflineProcess(show=True)
+        self.time = []
+        self.interp_x = []
+        self.interp_y = []
+        self.interp_z = []
+        self.fft_x = []
+        self.fft_y = []
+        self.fft_z = []
+        self.freq = []
 
     def get_values2d_cb(self, msg):
         bridge = CvBridge()
@@ -45,8 +54,8 @@ class SeriesConverter(object):
 
     def get_xyz_cb(self, msg):
 
-        value = np.mean(np.asarray(msg), axis=0)
-        t = (msg.header.stamp.secs + msg.header.stamp.nsecs * 1e-9)
+        value = np.asarray([msg.x, msg.y, msg.z])
+        t = time()
 
         # Store  points
         self.timeserie["time"] = np.append(self.timeserie["time"], t)
@@ -59,19 +68,19 @@ class SeriesConverter(object):
 
             # Interpolate at fixed frequency
             self.t_i = np.arange(0, self.wd, 1 / self.Fs)
-            interp_x = interp1d(self.timeserie["time"], self.timeserie["values"][:, 0])
-            interp_x = self.butter_bandpass_filter(interp_x(self.t_i), 0.75, 4)
-            freq, fft_x = self.do_fft(interp_x)
-            interp_y = interp1d(self.timeserie["time"], self.timeserie["values"][:, 1])
-            interp_y = self.butter_bandpass_filter(interp_y(self.t_i), 0.75, 4)
-            _, fft_y = self.do_fft(interp_y)
-            interp_z = interp1d(self.timeserie["time"], self.timeserie["values"][:, 2])
-            interp_z = self.butter_bandpass_filter(interp_z(self.t_i), 0.75, 4)
-            _, fft_z = self.do_fft(interp_z)
+            self.interp_x = interp1d(self.timeserie["time"], self.timeserie["values"][:, 0])
+            self.interp_x = self.butter_bandpass_filter(self.interp_x(self.t_i), 0.75, 4)
+            self.freq, self.fft_x = self.do_fft(self.interp_x)
+            self.interp_y = interp1d(self.timeserie["time"], self.timeserie["values"][:, 1])
+            self.interp_y = self.butter_bandpass_filter(self.interp_y(self.t_i), 0.75, 4)
+            _, self.fft_y = self.do_fft(self.interp_y)
+            self.interp_z = interp1d(self.timeserie["time"], self.timeserie["values"][:, 2])
+            self.interp_z = self.butter_bandpass_filter(self.interp_z(self.t_i), 0.75, 4)
+            _, self.fft_z = self.do_fft(self.interp_z)
 
             print('Enter filename...')
-            name = input()
-            pickle.dump((self.t_i, interp_x, interp_y, interp_z, freq, fft_x, fft_y, fft_z),
+            name = raw_input()
+            pickle.dump((self.t_i, self.interp_x, self.interp_y, self.interp_z, self.freq, self.fft_x, self.fft_y, self.fft_z),
                         open(name + '.p', 'wb'))
 
             self.show_xyz()
@@ -126,11 +135,11 @@ class SeriesConverter(object):
         plt.xlabel('Time (s)')
         plt.ylabel('Motion x (m)')
         plt.plot(self.timeserie["time"], self.timeserie["values"][:, 0])
-        plt.plot(self.t_i, self.data.interp_x, '-r')
+        plt.plot(self.t_i, self.interp_x, '-r')
         plt.subplot(212)
         plt.xlabel('Frequency (hz)')
         plt.ylabel('Amplitude x')
-        plt.plot(self.data.freq, self.data.fft_x)
+        plt.plot(self.freq, self.fft_x)
 
         plt.figure(2)
         plt.clf()
@@ -138,11 +147,11 @@ class SeriesConverter(object):
         plt.xlabel('Time (s)')
         plt.ylabel('Motion y (m)')
         plt.plot(self.timeserie["time"], self.timeserie["values"][:, 1])
-        plt.plot(self.t_i, self.data.interp_y, '-r')
+        plt.plot(self.t_i, self.interp_y, '-r')
         plt.subplot(212)
         plt.xlabel('Frequency (hz)')
         plt.ylabel('Amplitude y')
-        plt.plot(self.data.freq, self.data.fft_y)
+        plt.plot(self.freq, self.fft_y)
 
         plt.figure(3)
         plt.clf()
@@ -150,11 +159,11 @@ class SeriesConverter(object):
         plt.xlabel('Time (s)')
         plt.ylabel('Motion z (m)')
         plt.plot(self.timeserie["time"], self.timeserie["values"][:, 2])
-        plt.plot(self.t_i, self.data.interp_z, '-r')
+        plt.plot(self.t_i, self.interp_z, '-r')
         plt.subplot(212)
         plt.xlabel('Frequency (hz)')
         plt.ylabel('Amplitude z')
-        plt.plot(self.data.freq, self.data.fft_z)
+        plt.plot(self.freq, self.fft_z)
         plt.pause(0.000001)
 
 
@@ -186,7 +195,7 @@ class SeriesConverter(object):
 
 if __name__ == '__main__':
     counter = 0
-    timeseries = SeriesConverter(online=False)
+    timeseries = SeriesConverter()
     plt.ion()
     plt.show()
     rospy.init_node("time_series_prcss")

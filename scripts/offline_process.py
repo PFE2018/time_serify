@@ -13,6 +13,7 @@ import pywt
 import math
 import pandas as pd
 import biosppy as bp
+import peakutils as pk
 
 
 def floor_log(num, base):
@@ -42,9 +43,6 @@ class OfflineProcess(object):
         self.ref_time = []
         self.hr_kinect = []
         self.kinect_time = []
-        # Select ref type to open
-        is_ref_mat = True if '.mat' in ref_file else False
-        self.data_import(pickled_file, ref_file, show, is_ref_mat)
 
     # Data import and show #
     def data_import(self, pickle_name, refname, show=True, is_ref_mat=True):
@@ -62,7 +60,7 @@ class OfflineProcess(object):
         self.fft_x = self.fft_x[:self.largest_base]
         self.fft_y = self.fft_y[:self.largest_base]
         self.fft_z = self.fft_z[:self.largest_base]
-        if is_ref_mat:
+        if '.mat' in refname:
             mat_ecg = io.loadmat('../recordings/' + refname)
             self.ref = bp.ecg.ecg(signal=mat_ecg['data'][0], sampling_rate=mat_ecg['samplerate'][0][0], show=False)
             self.ref_time = self.ref[5]
@@ -118,7 +116,7 @@ class OfflineProcess(object):
     # Wavelet processing and show #
     def wvt_proc(self, show=True):
         num_level = int(np.log2(self.largest_base))
-        slct_lvl = 5
+        slct_lvl = 3
         for axis in [self.interp_x, self.interp_y, self.interp_z]:
             wlt = pywt.Wavelet('db6')
             new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
@@ -127,32 +125,32 @@ class OfflineProcess(object):
                 plt.figure()
                 plt.subplot(421)
                 plt.title('Wavelet coefficient 1')
-                plt.plot(self.t_i, new_sig[6][1])
+                plt.plot(self.t_i, new_sig[-1][1])
                 plt.subplot(422)
                 plt.title('Wavelet coefficient 2')
-                plt.plot(self.t_i, new_sig[5][1])
+                plt.plot(self.t_i, new_sig[-2][1])
                 plt.subplot(423)
                 plt.title('Wavelet coefficient 3')
-                plt.plot(self.t_i, new_sig[4][1])
+                plt.plot(self.t_i, new_sig[-3][1])
                 plt.subplot(424)
                 plt.title('Wavelet coefficient 4')
-                plt.plot(self.t_i, new_sig[3][1])
+                plt.plot(self.t_i, new_sig[-4][1])
                 plt.subplot(425)
                 plt.title('Wavelet coefficient 5')
-                plt.plot(self.t_i, new_sig[2][1])
+                plt.plot(self.t_i, new_sig[-5][1])
                 plt.subplot(426)
                 plt.title('Wavelet coefficient 6')
-                plt.plot(self.t_i, new_sig[1][1])
+                plt.plot(self.t_i, new_sig[-6][1])
                 plt.subplot(427)
                 plt.title('Wavelet coefficient 7')
-                plt.plot(self.t_i, new_sig[0][1])
+                plt.plot(self.t_i, new_sig[-7][1])
 
             # Get peaks-locs, compute interval
-            loc_idx = signal.find_peaks_cwt(new_sig[num_level - slct_lvl][1], np.arange(1, 10))
+            loc_idx = pk.indexes(new_sig[-slct_lvl][1], min_dist=15)
             if show:
                 # Plot slected wavelet coefficient peaks
                 plt.subplot(420 + slct_lvl)
-                plt.plot(self.t_i[loc_idx], new_sig[num_level - slct_lvl][1][loc_idx])
+                plt.plot(self.t_i[loc_idx], new_sig[-slct_lvl][1][loc_idx])
                 plt.pause(0.000001)
             peaks = {'Time': loc_idx * 1.0 / 20.0}
             peaks_df = pd.DataFrame(peaks)
@@ -213,9 +211,10 @@ class OfflineProcess(object):
 
 
 if __name__ == '__main__':
-    data = OfflineProcess(pickled_file='SOL_COUTURIER_ELODIE_2018_03_29_19_10.p',
-                          ref_file='REF_SOL_COUTURIER_ELODIE_2018_03_29_19_10.mat', show=False)
-    data.wvt_proc(show=False)
+    data = OfflineProcess()
+    data.data_import(pickle_name='SOL_LEMIEUX_NICOLAS_2018_03_22_20_00.p',
+                          refname='REF_SOL_LEMIEUX_NICOLAS_2018_03_22_20_00.mat', show=True)
+    data.wvt_proc(show=True)
 
     # Get range fitting for kinect values
     kinect_hr_end = min(data.kinect_time[0][-1], data.kinect_time[1][-1], data.kinect_time[2][-1])

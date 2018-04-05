@@ -6,6 +6,7 @@ import pywt
 import math
 import pandas as pd
 import biosppy as bp
+import peakutils as pk
 
 
 def floor_log(num, base):
@@ -25,10 +26,7 @@ class OnlineProcess(object):
         self.interp_x = []
         self.interp_y = []
         self.interp_z = []
-        self.freq = []
-        self.fft_x = []
-        self.fft_y = []
-        self.fft_z = []
+        self.signals = []
         self.ref = []
         self.ref_hr = []
         self.ref_time = []
@@ -39,40 +37,40 @@ class OnlineProcess(object):
     def wvt_proc(self, show=True):
         num_level = int(np.log2(self.largest_base))
         slct_lvl = 4
-        for axis in [self.interp_x, self.interp_y, self.interp_z]:
-            wlt = pywt.Wavelet('db6')
+        for axis in self.signals:
+            wlt = pywt.Wavelet('sym8')
             new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
 
             if show:
                 plt.figure()
                 plt.subplot(421)
                 plt.title('Wavelet coefficient 1')
-                plt.plot(self.t_i, new_sig[6][1])
+                plt.plot(self.t_i, new_sig[-1][1])
                 plt.subplot(422)
                 plt.title('Wavelet coefficient 2')
-                plt.plot(self.t_i, new_sig[5][1])
+                plt.plot(self.t_i, new_sig[-2][1])
                 plt.subplot(423)
                 plt.title('Wavelet coefficient 3')
-                plt.plot(self.t_i, new_sig[4][1])
+                plt.plot(self.t_i, new_sig[-3][1])
                 plt.subplot(424)
                 plt.title('Wavelet coefficient 4')
-                plt.plot(self.t_i, new_sig[3][1])
+                plt.plot(self.t_i, new_sig[-4][1])
                 plt.subplot(425)
                 plt.title('Wavelet coefficient 5')
-                plt.plot(self.t_i, new_sig[2][1])
+                plt.plot(self.t_i, new_sig[-5][1])
                 plt.subplot(426)
                 plt.title('Wavelet coefficient 6')
-                plt.plot(self.t_i, new_sig[1][1])
+                plt.plot(self.t_i, new_sig[-6][1])
                 plt.subplot(427)
                 plt.title('Wavelet coefficient 7')
-                plt.plot(self.t_i, new_sig[0][1])
+                plt.plot(self.t_i, new_sig[-7][1])
 
             # Get peaks-locs, compute interval
-            loc_idx = signal.find_peaks_cwt(new_sig[num_level - slct_lvl][1], np.arange(1, 10))
+            loc_idx = pk.indexes(new_sig[-slct_lvl][1], min_dist=10)
             if show:
                 # Plot slected wavelet coefficient peaks
                 plt.subplot(420 + slct_lvl)
-                plt.plot(self.t_i[loc_idx], new_sig[num_level - slct_lvl][1][loc_idx])
+                plt.plot(self.t_i[loc_idx], new_sig[-slct_lvl][1][loc_idx])
                 plt.pause(0.000001)
             peaks = {'Time': loc_idx * 1.0 / 20.0}
             peaks_df = pd.DataFrame(peaks)
@@ -81,15 +79,14 @@ class OnlineProcess(object):
             hr = (60.0 / (peaks_df.diff().mean().values)).flatten()
             hr_time = peaks_df.values.flatten()
 
-            self.hr_kinect.append(hr)
-            self.kinect_time.append(hr_time)
-
             if show:
                 # Show analysis
                 plt.figure()
                 plt.plot(hr_time, hr)
                 plt.legend(['Kinect measurement', 'ECG Ground truth'])
                 plt.pause(0.000001)
+
+            return np.mean(hr)
 
 
     # STFT processing and show #
@@ -106,9 +103,8 @@ class OnlineProcess(object):
 
 
 if __name__ == '__main__':
-    data = OnlineProcess(pickled_file='CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p',
-                         ref_file='REF_CHAIR_OTIS_SAMUEL_2018_03_22_16_06.mat', show=False)
-    data.wvt_proc([data.interp_x], show=False)
+    data = OnlineProcess()
+    data.wvt_proc(show=False)
 
     # Get range fitting for kinect values
     kinect_hr_end = min(data.kinect_time[0][-1], data.kinect_time[1][-1], data.kinect_time[2][-1])
