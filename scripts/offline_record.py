@@ -22,7 +22,7 @@ class SeriesConverter(object):
         self.image = None
         self.timeserie = dict({"time": np.empty([0, 1]), "values": np.empty([0, 3])})
         self.Fs = 20.0  # Herz
-        self.wd = 10.0  # seconds
+        self.wd = 290.0  # seconds
         self.data = OfflineProcess(show=True)
         self.time = []
         self.interp_x = []
@@ -53,7 +53,7 @@ class SeriesConverter(object):
             print(e)
 
     def get_xyz_cb(self, msg):
-
+        print('s')
         value = np.asarray([msg.x, msg.y, msg.z])
         t = time()
 
@@ -127,6 +127,7 @@ class SeriesConverter(object):
             self.show_xyz()
             dict({"time": np.empty([0, 0]), "values": np.empty([0, 0])})
 
+    # INSERT FOR LOOP FOR PLOTS
     def show_xyz(self):
         # Plot real and interpolated signal
         plt.figure(1)

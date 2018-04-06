@@ -75,6 +75,7 @@ class OfflineProcess(object):
             self.show_data()
 
     # Show data and related FFT
+    # INSERT FOR LOOP FOR PLOTS
     def show_data(self):
         # Plot real and interpolated signal
         plt.figure()
@@ -121,6 +122,7 @@ class OfflineProcess(object):
             wlt = pywt.Wavelet('db6')
             new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
 
+            # INSERT FOR LOOP FOR PLOTS
             if show:
                 plt.figure()
                 plt.subplot(421)

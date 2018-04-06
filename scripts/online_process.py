@@ -41,6 +41,7 @@ class OnlineProcess(object):
             wlt = pywt.Wavelet('sym8')
             new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
 
+            # INSERT FOR LOOP FOR PLOTS
             if show:
                 plt.figure()
                 plt.subplot(421)
