@@ -3,8 +3,6 @@
 ###
 
 
-
-
 import pickle
 import matplotlib.pyplot as plt
 from scipy import signal, interpolate, io
@@ -117,7 +115,7 @@ class OfflineProcess(object):
     # Wavelet processing and show #
     def wvt_proc(self, show=True):
         num_level = int(np.log2(self.largest_base))
-        slct_lvl = 3
+        slct_lvl = 4
         for axis in [self.interp_x, self.interp_y, self.interp_z]:
             wlt = pywt.Wavelet('db6')
             new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
@@ -148,7 +146,7 @@ class OfflineProcess(object):
                 plt.plot(self.t_i, new_sig[-7][1])
 
             # Get peaks-locs, compute interval
-            loc_idx = pk.indexes(new_sig[-slct_lvl][1], min_dist=15)
+            loc_idx = pk.indexes(new_sig[-slct_lvl][1], min_dist=6)
             if show:
                 # Plot slected wavelet coefficient peaks
                 plt.subplot(420 + slct_lvl)
@@ -158,7 +156,7 @@ class OfflineProcess(object):
             peaks_df = pd.DataFrame(peaks)
 
             # Compute mean interval and get heart rate with sliding window
-            hr = (60.0 / (peaks_df.diff().rolling(10).mean().values)).flatten()
+            hr = (60.0 / (peaks_df.rolling(10).mean().values)).flatten()
             hr_time = peaks_df.values.flatten()
 
             # Fit data and ref together
@@ -169,7 +167,6 @@ class OfflineProcess(object):
             self.ref_time = self.ref_time[self.ref_time >= hr_time[0]]
             hr = hr[hr_time >= self.ref_time[0]]
             hr_time = hr_time[hr_time >= self.ref_time[0]]
-
 
             # Get error with ref
             interp_ref_f = interpolate.interp1d(self.ref_time, self.ref_hr)
@@ -198,7 +195,6 @@ class OfflineProcess(object):
                 # plt.plot(interp_ref, m * interp_ref + b, '-')
                 # plt.pause(0.000001)
 
-
     # STFT processing and show #
     def stft_proc(self, sig, show=True):
         specgram, t, z = signal.stft(sig, 20, nperseg=200)
@@ -214,8 +210,8 @@ class OfflineProcess(object):
 
 if __name__ == '__main__':
     data = OfflineProcess()
-    data.data_import(pickle_name='SOL_LEMIEUX_NICOLAS_2018_03_22_20_00.p',
-                          refname='REF_SOL_LEMIEUX_NICOLAS_2018_03_22_20_00.mat', show=True)
+    data.data_import(pickle_name='2nd take/SOL_COUTURIER_ELODIE_2018-04-05-19-41.p',
+                     refname='2nd take/REF_SOL_COUTURIER_ELODIE_2018_04_05_19_41.mat', show=True)
     data.wvt_proc(show=True)
 
     # Get range fitting for kinect values
@@ -234,7 +230,6 @@ if __name__ == '__main__':
     hr = np.array([hr_x, hr_y, hr_z])
     mean_hr = np.mean(hr, axis=0)
 
-
     # Plot results
     plt.figure()
     plt.plot(data.ref_time, data.ref_hr)
@@ -248,9 +243,14 @@ if __name__ == '__main__':
     plt.plot(data.ref_time, mean_hr)
     plt.pause(0.000001)
     plt.figure()
-    plt.plot(data.ref_time, abs(data.ref_hr-mean_hr))
-    mean = np.mean(abs(data.ref_hr-mean_hr))
-    dev = np.std(abs(data.ref_hr-mean_hr))
+    plt.plot(data.ref_time, abs(data.ref_hr - mean_hr))
+    abs_error = abs(data.ref_hr - mean_hr)
+    mean = np.mean(abs_error)
+    dev = np.std(abs_error)
+    print('Enter filename...')
+    name = input()
+    pickle.dump(abs_error,
+                open(name + '.p', 'wb'))
     plt.pause(0.000001)
 
     assert True

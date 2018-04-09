@@ -79,7 +79,7 @@ class SeriesConverter(object):
             _, self.fft_z = self.do_fft(self.interp_z)
 
             print('Enter filename...')
-            name = raw_input()
+            name = input()
             pickle.dump((self.t_i, self.interp_x, self.interp_y, self.interp_z, self.freq, self.fft_x, self.fft_y, self.fft_z),
                         open(name + '.p', 'wb'))
 
