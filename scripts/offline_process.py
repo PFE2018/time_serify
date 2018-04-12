@@ -201,8 +201,8 @@ class OfflineProcess(object):
 
 if __name__ == '__main__':
     data = OfflineProcess()
-    data.data_import(pickle_name='2nd take/CHAISE_LEMAY_RAPHAEL_ir_pcl_rgb_2018-04-05-16-20-21.p',
-                     refname='2nd take/REF_CHAISE_LEMAY_RAPHAEL_ir_pcl_rgb_2018-04-05-16-20-21.mat', show=True)
+    data.data_import(pickle_name='2nd take/CHAISE_AUCLAIR_SIMON_pcl_rgb_2018-04-12-15-40-20.p',
+                     refname='2nd take/REF_CHAISE_AUCLAIR_SIMON_pcl_rgb_2018-04-12-15-40-20.mat', show=True)
     data.wvt_proc(show=True)
 
     # Get range fitting for kinect values
