@@ -44,33 +44,17 @@ class OnlineProcess(object):
             # INSERT FOR LOOP FOR PLOTS
             if show:
                 plt.figure()
-                plt.subplot(421)
-                plt.title('Wavelet coefficient 1')
-                plt.plot(self.t_i, new_sig[-1][1])
-                plt.subplot(422)
-                plt.title('Wavelet coefficient 2')
-                plt.plot(self.t_i, new_sig[-2][1])
-                plt.subplot(423)
-                plt.title('Wavelet coefficient 3')
-                plt.plot(self.t_i, new_sig[-3][1])
-                plt.subplot(424)
-                plt.title('Wavelet coefficient 4')
-                plt.plot(self.t_i, new_sig[-4][1])
-                plt.subplot(425)
-                plt.title('Wavelet coefficient 5')
-                plt.plot(self.t_i, new_sig[-5][1])
-                plt.subplot(426)
-                plt.title('Wavelet coefficient 6')
-                plt.plot(self.t_i, new_sig[-6][1])
-                plt.subplot(427)
-                plt.title('Wavelet coefficient 7')
-                plt.plot(self.t_i, new_sig[-7][1])
+                for i in range(1, num_level + 1):
+                    plt.subplot(4, 3, i)
+                    plt.title('Wavelet coefficient' + str(i))
+                    plt.plot(self.t_i, new_sig[-i][1])
+                plt.pause(0.00001)
 
             # Get peaks-locs, compute interval
             loc_idx = pk.indexes(new_sig[-slct_lvl][1], min_dist=10)
             if show:
                 # Plot slected wavelet coefficient peaks
-                plt.subplot(420 + slct_lvl)
+                plt.subplot(4, 3, slct_lvl)
                 plt.plot(self.t_i[loc_idx], new_sig[-slct_lvl][1][loc_idx])
                 plt.pause(0.000001)
             peaks = {'Time': loc_idx * 1.0 / 20.0}

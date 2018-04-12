@@ -23,6 +23,12 @@ def floor_log(num, base):
 
     return base ** int(math.log(num, base))
 
+def get_euclidean_distance(x, y, z):
+    e_dis = []
+    for ix, iy, iz in zip(x, y, z):
+        e_dis.append(np.sqrt(ix**2+iy**2+iz**2))
+    return e_dis
+
 
 class OfflineProcess(object):
     def __init__(self, pickled_file='CHAIR_OTIS_SAMUEL_2018_03_22_16_06.p',
@@ -115,48 +121,33 @@ class OfflineProcess(object):
     # Wavelet processing and show #
     def wvt_proc(self, show=True):
         num_level = int(np.log2(self.largest_base))
-        slct_lvl = 4
+        slct_lvl = 5
+        euc_dis = get_euclidean_distance(self.interp_x, self.interp_y, self.interp_z)
         for axis in [self.interp_x, self.interp_y, self.interp_z]:
-            wlt = pywt.Wavelet('db6')
+            wlt = pywt.Wavelet('sym8')
             new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
 
             # INSERT FOR LOOP FOR PLOTS
             if show:
                 plt.figure()
-                plt.subplot(421)
-                plt.title('Wavelet coefficient 1')
-                plt.plot(self.t_i, new_sig[-1][1])
-                plt.subplot(422)
-                plt.title('Wavelet coefficient 2')
-                plt.plot(self.t_i, new_sig[-2][1])
-                plt.subplot(423)
-                plt.title('Wavelet coefficient 3')
-                plt.plot(self.t_i, new_sig[-3][1])
-                plt.subplot(424)
-                plt.title('Wavelet coefficient 4')
-                plt.plot(self.t_i, new_sig[-4][1])
-                plt.subplot(425)
-                plt.title('Wavelet coefficient 5')
-                plt.plot(self.t_i, new_sig[-5][1])
-                plt.subplot(426)
-                plt.title('Wavelet coefficient 6')
-                plt.plot(self.t_i, new_sig[-6][1])
-                plt.subplot(427)
-                plt.title('Wavelet coefficient 7')
-                plt.plot(self.t_i, new_sig[-7][1])
+                for i in range(1, num_level + 1):
+                    plt.subplot(4, 3, i)
+                    plt.title('Wavelet coefficient' + str(i))
+                    plt.plot(self.t_i, new_sig[-i][1])
+                plt.pause(0.00001)
 
             # Get peaks-locs, compute interval
             loc_idx = pk.indexes(new_sig[-slct_lvl][1], min_dist=6)
             if show:
                 # Plot slected wavelet coefficient peaks
-                plt.subplot(420 + slct_lvl)
+                plt.subplot(4, 3, slct_lvl)
                 plt.plot(self.t_i[loc_idx], new_sig[-slct_lvl][1][loc_idx])
                 plt.pause(0.000001)
             peaks = {'Time': loc_idx * 1.0 / 20.0}
             peaks_df = pd.DataFrame(peaks)
 
             # Compute mean interval and get heart rate with sliding window
-            hr = (60.0 / (peaks_df.rolling(10).mean().values)).flatten()
+            hr = (60.0 / (peaks_df.diff().rolling(10).mean().values)).flatten()
             hr_time = peaks_df.values.flatten()
 
             # Fit data and ref together
@@ -210,8 +201,8 @@ class OfflineProcess(object):
 
 if __name__ == '__main__':
     data = OfflineProcess()
-    data.data_import(pickle_name='2nd take/SOL_COUTURIER_ELODIE_2018-04-05-19-41.p',
-                     refname='2nd take/REF_SOL_COUTURIER_ELODIE_2018_04_05_19_41.mat', show=True)
+    data.data_import(pickle_name='2nd take/CHAISE_LEMAY_RAPHAEL_ir_pcl_rgb_2018-04-05-16-20-21.p',
+                     refname='2nd take/REF_CHAISE_LEMAY_RAPHAEL_ir_pcl_rgb_2018-04-05-16-20-21.mat', show=True)
     data.wvt_proc(show=True)
 
     # Get range fitting for kinect values
@@ -227,7 +218,7 @@ if __name__ == '__main__':
     hr_x = np.array(hr_x_f(data.ref_time))
     hr_y = np.array(hr_y_f(data.ref_time))
     hr_z = np.array(hr_z_f(data.ref_time))
-    hr = np.array([hr_x, hr_y, hr_z])
+    hr = np.array([hr_x, hr_y, hr_z]) # np.array([hr_z])
     mean_hr = np.mean(hr, axis=0)
 
     # Plot results
@@ -236,7 +227,7 @@ if __name__ == '__main__':
     plt.plot(data.ref_time, hr_x)
     plt.plot(data.ref_time, hr_y)
     plt.plot(data.ref_time, hr_z)
-    plt.legend(['Ground  truth', 'HR x axis', 'HR y axis', 'HR z axis'])
+    plt.legend(['Ground  truth', 'HR x axis', 'HR y axis', 'HR z axis']) # ['Ground  truth', 'HR z axis']
     plt.pause(0.000001)
     plt.figure()
     plt.plot(data.ref_time, data.ref_hr)
@@ -247,8 +238,7 @@ if __name__ == '__main__':
     abs_error = abs(data.ref_hr - mean_hr)
     mean = np.mean(abs_error)
     dev = np.std(abs_error)
-    print('Enter filename...')
-    name = input()
+    name = input('Enter filename...')
     pickle.dump(abs_error,
                 open(name + '.p', 'wb'))
     plt.pause(0.000001)
