@@ -121,10 +121,10 @@ class OfflineProcess(object):
     # Wavelet processing and show #
     def wvt_proc(self, show=True):
         num_level = int(np.log2(self.largest_base))
-        slct_lvl = 5
+        slct_lvl = 4
         euc_dis = get_euclidean_distance(self.interp_x, self.interp_y, self.interp_z)
         for axis in [self.interp_x, self.interp_y, self.interp_z]:
-            wlt = pywt.Wavelet('sym8')
+            wlt = pywt.Wavelet('db6')
             new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
 
             # INSERT FOR LOOP FOR PLOTS
@@ -201,9 +201,9 @@ class OfflineProcess(object):
 
 if __name__ == '__main__':
     data = OfflineProcess()
-    data.data_import(pickle_name='2nd take/CHAISE_AUCLAIR_SIMON_pcl_rgb_2018-04-12-15-40-20.p',
-                     refname='2nd take/REF_CHAISE_AUCLAIR_SIMON_pcl_rgb_2018-04-12-15-40-20.mat', show=True)
-    data.wvt_proc(show=True)
+    data.data_import(pickle_name='2nd take/SOL_JOHNSON_GABRIELLE_pcl_rgb_2018-04-12-16-12-57.p',
+                     refname='2nd take/REF_SOL_JOHNSON_GABRIELLE_pcl_rgb_2018-04-12-16-12-57.mat', show=True)
+    data.wvt_proc(show=False)
 
     # Get range fitting for kinect values
     kinect_hr_end = min(data.kinect_time[0][-1], data.kinect_time[1][-1], data.kinect_time[2][-1])
@@ -218,7 +218,7 @@ if __name__ == '__main__':
     hr_x = np.array(hr_x_f(data.ref_time))
     hr_y = np.array(hr_y_f(data.ref_time))
     hr_z = np.array(hr_z_f(data.ref_time))
-    hr = np.array([hr_x, hr_y, hr_z]) # np.array([hr_z])
+    hr = np.array([hr_z]) # np.array([hr_x, hr_y, hr_z])
     mean_hr = np.mean(hr, axis=0)
 
     # Plot results

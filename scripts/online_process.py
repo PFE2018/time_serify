@@ -51,7 +51,7 @@ class OnlineProcess(object):
                 plt.pause(0.00001)
 
             # Get peaks-locs, compute interval
-            loc_idx = pk.indexes(new_sig[-slct_lvl][1], min_dist=10)
+            loc_idx = pk.indexes(new_sig[-slct_lvl][1], min_dist=6)
             if show:
                 # Plot slected wavelet coefficient peaks
                 plt.subplot(4, 3, slct_lvl)
