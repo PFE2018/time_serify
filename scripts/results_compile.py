@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import pickle
 import numpy as np
+import os
 
 # USING MEAN METHOD#
 mean_chaise = []
@@ -55,20 +56,15 @@ e_dis_amae = np.mean(e_dis_mae)
 e_dis_std = np.std(e_dis_mae)
 
 # USING EIGEN VALUES METHOD#
-eigen_chaise = []
-eigen_sol = []
-
-eigen_chaise.append(pickle.load(open('../recordings/2nd take/results/CHAISE_COUTURIER_ELODIE_HRZ_EIGEN_AE.p', 'rb')))
-eigen_chaise.append(pickle.load(open('../recordings/2nd take/results/CHAISE_LEMAY_RAPHAEL_HRZ_EIGEN_AE.p', 'rb')))
-eigen_chaise.append(pickle.load(open('../recordings/2nd take/results/CHAISE_OTIS_SAMUEL_HRZ_EIGEN_AE.p', 'rb')))
+mypath = '../recordings/2nd take/pcl_eigenvalues/results/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+eigen_chaise = [pickle.load(open(mypath+file, 'rb')) for file in files if 'CHAISE' in file]
 plt.figure()
 plt.title('Eigen_chaise')
 plt.boxplot(eigen_chaise)
 plt.pause(0.0001)
 
-eigen_sol.append(pickle.load(open('../recordings/2nd take/results/SOL_COUTURIER_HRZ_EIGEN_AE.p', 'rb')))
-eigen_sol.append(pickle.load(open('../recordings/2nd take/results/SOL_LEMAY_RAPHAEL_HRZ_EIGEN_AE.p', 'rb')))
-eigen_sol.append(pickle.load(open('../recordings/2nd take/results/SOL_OTIS_SAMUEL_HRZ_EIGEN_AE.p', 'rb')))
+eigen_sol = [pickle.load(open(mypath+file, 'rb')) for file in files if 'SOL' in file]
 plt.figure()
 plt.title('Eigen_sol')
 plt.boxplot(eigen_sol)

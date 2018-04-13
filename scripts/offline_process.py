@@ -201,8 +201,8 @@ class OfflineProcess(object):
 
 if __name__ == '__main__':
     data = OfflineProcess()
-    data.data_import(pickle_name='2nd take/SOL_JOHNSON_GABRIELLE_pcl_rgb_2018-04-12-16-12-57.p',
-                     refname='2nd take/REF_SOL_JOHNSON_GABRIELLE_pcl_rgb_2018-04-12-16-12-57.mat', show=True)
+    data.data_import(pickle_name='2nd take/pcl_eigenvalues/SOL_LEMIEUX_NICOLAS_ir_pcl_rgb_2018-04-12-19-07-47.p',
+                     refname='2nd take/refs/REF_SOL_LEMIEUX_NICOLAS_2018_04-12-19-07-47.mat', show=True)
     data.wvt_proc(show=False)
 
     # Get range fitting for kinect values
@@ -235,12 +235,13 @@ if __name__ == '__main__':
     plt.pause(0.000001)
     plt.figure()
     plt.plot(data.ref_time, abs(data.ref_hr - mean_hr))
+    plt.pause(0.000001)
     abs_error = abs(data.ref_hr - mean_hr)
     mean = np.mean(abs_error)
     dev = np.std(abs_error)
     name = input('Enter filename...')
     pickle.dump(abs_error,
                 open(name + '.p', 'wb'))
-    plt.pause(0.000001)
+
 
     assert True

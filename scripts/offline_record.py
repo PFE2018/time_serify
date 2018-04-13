@@ -202,5 +202,5 @@ if __name__ == '__main__':
     rospy.init_node("time_series_prcss")
     # rospy.Subscriber("/kinect2/sd/image_depth", Image, timeseries.get_values2d_cb)
     # rospy.Subscriber("/filtered_pcloud", PointCloud2, timeseries.get_pcl_cb)
-    rospy.Subscriber("/pcl_eigenvalues", Point, timeseries.get_xyz_cb)
+    rospy.Subscriber("/centroid_XYZ", Point, timeseries.get_xyz_cb)
     rospy.spin()
