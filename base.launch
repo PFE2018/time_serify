@@ -1,0 +1,16 @@
+<?xml version='1.0'?>
+<launch>
+
+<include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch"/>
+<include file="$(find tfpose_ros)/launch/kinect_pose.launch"/>
+<include file="$(find head_getter)/launch/head_getter.launch"/>
+<include file="$(find head_filter)/launch/head_filter.launch"/>
+<include file="$(find cluster_gen)/launch/cluster_gen.launch"/>
+<include file="$(find cluster_visualiser)/launch/cluster_visualiser.launch"/>
+
+
+
+</launch>
+
+
+
