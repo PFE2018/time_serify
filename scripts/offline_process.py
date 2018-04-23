@@ -12,6 +12,7 @@ import math
 import pandas as pd
 import biosppy as bp
 import peakutils as pk
+import os
 
 
 def floor_log(num, base):
@@ -23,10 +24,11 @@ def floor_log(num, base):
 
     return base ** int(math.log(num, base))
 
+
 def get_euclidean_distance(x, y, z):
     e_dis = []
     for ix, iy, iz in zip(x, y, z):
-        e_dis.append(np.sqrt(ix**2+iy**2+iz**2))
+        e_dis.append(np.sqrt(ix ** 2 + iy ** 2 + iz ** 2))
     return e_dis
 
 
@@ -52,7 +54,7 @@ class OfflineProcess(object):
     def data_import(self, pickle_name, refname, show=True, is_ref_mat=True):
         # Import data
         self.t_i, self.interp_x, self.interp_y, self.interp_z, self.freq, self.fft_x, self.fft_y, self.fft_z = pickle.load(
-            open('../recordings/' + pickle_name, 'rb'))
+            open(pickle_name, 'rb'))
         # Cut data to magnitude of 2
         self.largest_base = floor_log(len(self.t_i), 2)
 
@@ -115,15 +117,16 @@ class OfflineProcess(object):
         plt.xlabel('Frequency (hz)')
         plt.ylabel('Amplitude z')
         plt.plot(self.freq, self.fft_z)
-
+        plt.subplots_adjust(left=None, bottom=None, right=None, top=None,
+                            wspace=0.5, hspace=0.5)
         plt.pause(0.000001)
 
     # Wavelet processing and show #
     def wvt_proc(self, show=True):
         num_level = int(np.log2(self.largest_base))
-        slct_lvl = 4
+        slct_lvl = 3
         euc_dis = get_euclidean_distance(self.interp_x, self.interp_y, self.interp_z)
-        for axis in [self.interp_x, self.interp_y, self.interp_z]:
+        for axis in [euc_dis, euc_dis, euc_dis]:
             wlt = pywt.Wavelet('db6')
             new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
 
@@ -132,16 +135,18 @@ class OfflineProcess(object):
                 plt.figure()
                 for i in range(1, num_level + 1):
                     plt.subplot(4, 3, i)
-                    plt.title('Wavelet coefficient' + str(i))
-                    plt.plot(self.t_i, new_sig[-i][1])
+                    plt.title('Wavelet coefficient ' + str(i))
+                    plt.plot(self.t_i, new_sig[-i][0])
+                plt.subplots_adjust(left=None, bottom=None, right=None, top=None,
+                                    wspace=0.5, hspace=0.5)
                 plt.pause(0.00001)
 
             # Get peaks-locs, compute interval
-            loc_idx = pk.indexes(new_sig[-slct_lvl][1], min_dist=6)
+            loc_idx = pk.indexes(new_sig[-slct_lvl][0], min_dist=6, thres=0)
             if show:
                 # Plot slected wavelet coefficient peaks
                 plt.subplot(4, 3, slct_lvl)
-                plt.plot(self.t_i[loc_idx], new_sig[-slct_lvl][1][loc_idx])
+                plt.plot(self.t_i[loc_idx], new_sig[-slct_lvl][0][loc_idx], 'r*')
                 plt.pause(0.000001)
             peaks = {'Time': loc_idx * 1.0 / 20.0}
             peaks_df = pd.DataFrame(peaks)
@@ -201,47 +206,51 @@ class OfflineProcess(object):
 
 if __name__ == '__main__':
     data = OfflineProcess()
-    data.data_import(pickle_name='2nd take/pcl_eigenvalues/SOL_LEMIEUX_NICOLAS_ir_pcl_rgb_2018-04-12-19-07-47.p',
-                     refname='2nd take/refs/REF_SOL_LEMIEUX_NICOLAS_2018_04-12-19-07-47.mat', show=True)
-    data.wvt_proc(show=False)
+    filepath = '../recordings/2nd take/centroids/'
+    refpath = '../recordings/2nd take/refs/'
+    files = sorted([f for f in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, f))])
+    refs = sorted([f for f in os.listdir(refpath) if os.path.isfile(os.path.join(refpath, f))])
+    for ref, file in zip(refs, files):
+        data.data_import(pickle_name=filepath + file,
+                         refname=refpath + ref, show=False)
+        data.wvt_proc(show=False)
 
-    # Get range fitting for kinect values
-    kinect_hr_end = min(data.kinect_time[0][-1], data.kinect_time[1][-1], data.kinect_time[2][-1])
-    data.ref_hr = data.ref_hr[data.ref_time <= kinect_hr_end]
-    data.ref_time = data.ref_time[data.ref_time <= kinect_hr_end]
+        # Get range fitting for kinect values
+        kinect_hr_end = min(data.kinect_time[0][-1], data.kinect_time[1][-1], data.kinect_time[2][-1])
+        data.ref_hr = data.ref_hr[data.ref_time <= kinect_hr_end]
+        data.ref_time = data.ref_time[data.ref_time <= kinect_hr_end]
 
-    # interpolate axis over ref with right range
-    hr_x_f = interpolate.interp1d(data.kinect_time[0], data.hr_kinect[0], fill_value="extrapolate")
-    hr_y_f = interpolate.interp1d(data.kinect_time[1], data.hr_kinect[1], fill_value="extrapolate")
-    hr_z_f = interpolate.interp1d(data.kinect_time[2], data.hr_kinect[2], fill_value="extrapolate")
+        # interpolate axis over ref with right range
+        hr_x_f = interpolate.interp1d(data.kinect_time[0], data.hr_kinect[0], fill_value="extrapolate")
+        hr_y_f = interpolate.interp1d(data.kinect_time[1], data.hr_kinect[1], fill_value="extrapolate")
+        hr_z_f = interpolate.interp1d(data.kinect_time[2], data.hr_kinect[2], fill_value="extrapolate")
 
-    hr_x = np.array(hr_x_f(data.ref_time))
-    hr_y = np.array(hr_y_f(data.ref_time))
-    hr_z = np.array(hr_z_f(data.ref_time))
-    hr = np.array([hr_z]) # np.array([hr_x, hr_y, hr_z])
-    mean_hr = np.mean(hr, axis=0)
+        hr_x = np.array(hr_x_f(data.ref_time))
+        hr_y = np.array(hr_y_f(data.ref_time))
+        hr_z = np.array(hr_z_f(data.ref_time))
+        hr = np.array([[hr_z]])  # np.array([hr_x, hr_y, hr_z])
+        mean_hr = np.mean(hr, axis=0)
 
-    # Plot results
-    plt.figure()
-    plt.plot(data.ref_time, data.ref_hr)
-    plt.plot(data.ref_time, hr_x)
-    plt.plot(data.ref_time, hr_y)
-    plt.plot(data.ref_time, hr_z)
-    plt.legend(['Ground  truth', 'HR x axis', 'HR y axis', 'HR z axis']) # ['Ground  truth', 'HR z axis']
-    plt.pause(0.000001)
-    plt.figure()
-    plt.plot(data.ref_time, data.ref_hr)
-    plt.plot(data.ref_time, mean_hr)
-    plt.pause(0.000001)
-    plt.figure()
-    plt.plot(data.ref_time, abs(data.ref_hr - mean_hr))
-    plt.pause(0.000001)
-    abs_error = abs(data.ref_hr - mean_hr)
-    mean = np.mean(abs_error)
-    dev = np.std(abs_error)
-    name = input('Enter filename...')
-    pickle.dump(abs_error,
-                open(name + '.p', 'wb'))
-
+        # Plot results
+        plt.figure()
+        plt.plot(data.ref_time, data.ref_hr)
+        plt.plot(data.ref_time, hr_x)
+        plt.xlabel('Temps (s)')
+        plt.ylabel('Rythme cardiaque (BPM)')
+        plt.legend(['Référence', 'Kinect'])  # ['Ground  truth', 'HR z axis']
+        plt.pause(0.000001)
+        # plt.figure()
+        # plt.plot(data.ref_time, data.ref_hr)
+        # plt.plot(data.ref_time, mean_hr)
+        # plt.pause(0.000001)
+        # plt.figure()
+        # plt.plot(data.ref_time, abs(data.ref_hr - mean_hr))
+        # plt.pause(0.000001)
+        abs_error = abs(data.ref_hr - mean_hr)
+        mean = np.mean(abs_error)
+        dev = np.std(abs_error)
+        name = file[:-2] + '_z_AE'
+        # pickle.dump(abs_error,
+        #             open('../recordings/2nd take/centroids/results/db6/euclidean/'+name + '.p', 'wb'))
 
     assert True

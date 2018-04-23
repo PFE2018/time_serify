@@ -2,98 +2,334 @@ from matplotlib import pyplot as plt
 import pickle
 import numpy as np
 import os
-
-# USING MEAN METHOD#
-mean_chaise = []
-mean_chaise.append(pickle.load(open('../recordings/1st take/results/CHAISE_COUTURIER_ELODIE_HR_MEAN_AE.p', 'rb')))
-mean_chaise.append(pickle.load(open('../recordings/1st take/results/CHAISE_LEMAY_RAPHAEL_HR_MEAN_AE.p', 'rb')))
-mean_chaise.append(pickle.load(open('../recordings/1st take/results/CHAISE_OTIS_SAMUEL_HR_MEAN_AE.p', 'rb')))
-mean_chaise.append(pickle.load(open('../recordings/1st take/results/CHAISE_LEMIEUX_NICOLAS_HR_MEAN_AE.p', 'rb')))
-# plt.figure()
-# plt.title('Mean_chaise')
-# plt.boxplot(mean_chaise)
-# plt.pause(0.0001)
-
-mean_sol = []
-mean_sol.append(pickle.load(open('../recordings/1st take/results/SOL_COUTURIER_ELODIE_HR_MEAN_AE.p', 'rb')))
-mean_sol.append(pickle.load(open('../recordings/1st take/results/SOL_LEMAY_RAPHAEL_HR_MEAN_AE.p', 'rb')))
-mean_sol.append(pickle.load(open('../recordings/1st take/results/SOL_OTIS_SAMUEL_HR_MEAN_AE.p', 'rb')))
-mean_sol.append(pickle.load(open('../recordings/1st take/results/SOL_LEMIEUX_NICOLAS_HR_MEAN_AE.p', 'rb')))
-# plt.figure()
-# plt.title('Mean_sol')
-# plt.boxplot(mean_sol)
-# plt.pause(0.0001)
-
-mean_mae = [np.mean(mean_i) for mean_i in mean_chaise + mean_sol]
-mean_amae = np.mean(mean_mae)
-mean_std = np.std(mean_mae)
-
-# USING Euclidean distance METHOD#
-e_dis_chaise = []
-e_dis_sol = []
-
-e_dis_chaise.append(pickle.load(open('../recordings/1st take/results/CHAISE_COUTURIER_ELODIE_HR_DIS_AE.p', 'rb')))
-e_dis_chaise.append(pickle.load(open('../recordings/1st take/results/CHAISE_LEMAY_RAPHAEL_HR_DIS_AE.p', 'rb')))
-e_dis_chaise.append(pickle.load(open('../recordings/1st take/results/CHAISE_OTIS_SAMUEL_HR_DIS_AE.p', 'rb')))
-e_dis_chaise.append(pickle.load(open('../recordings/1st take/results/CHAISE_LEMIEUX_NICOLAS_HR_DIS_AE.p', 'rb')))
-# plt.figure()
-# plt.title('Euclidean_chaise')
-# plt.boxplot(e_dis_chaise)
-# plt.pause(0.0001)
-
-
-e_dis_sol.append(pickle.load(open('../recordings/1st take/results/SOL_COUTURIER_ELODIE_HR_DIS_AE.p', 'rb')))
-e_dis_sol.append(pickle.load(open('../recordings/1st take/results/SOL_LEMAY_RAPHAEL_HR_DIS_AE.p', 'rb')))
-e_dis_sol.append(pickle.load(open('../recordings/1st take/results/SOL_OTIS_SAMUEL_HR_DIS_AE.p', 'rb')))
-e_dis_sol.append(pickle.load(open('../recordings/1st take/results/SOL_LEMIEUX_NICOLAS_HR_DIS_AE.p', 'rb')))
-# plt.figure()
-# plt.title('Euclidean_sol')
-# plt.boxplot(e_dis_sol)
-# plt.pause(0.0001)
-
-e_dis_mae = [np.mean(e_dis_i) for e_dis_i in e_dis_chaise + e_dis_sol]
-e_dis_amae = np.mean(e_dis_mae)
-e_dis_std = np.std(e_dis_mae)
-
-# USING EIGEN VALUES METHOD#
-mypath = '../recordings/2nd take/pcl_eigenvalues/results/'
+# USING EIGEN VALUES x METHOD#
+mypath = '../recordings/2nd take/pcl_eigenvalues/results/db6/euclidean/'
 files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
-eigen_chaise = [pickle.load(open(mypath+file, 'rb')) for file in files if 'CHAISE' in file]
+eigen_chaise_euc = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Eigen_chaise')
+# plt.boxplot(eigen_chaise)
+# plt.pause(0.0001)
+
+eigen_sol_euc = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Eigen_sol')
+# plt.boxplot(eigen_sol)
+# plt.pause(0.0001)
+eigen_euc_mae = [np.mean(i) for i in eigen_chaise_euc + eigen_sol_euc]
+eigen_euc_amae_mean = np.mean(eigen_euc_mae)
+eigen_euc_std = np.std(eigen_euc_mae)
+
+# USING EIGEN VALUES x METHOD#
+mypath = '../recordings/2nd take/pcl_eigenvalues/results/db6/mean_xyz/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+eigen_chaise_mean = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Eigen_chaise')
+# plt.boxplot(eigen_chaise)
+# plt.pause(0.0001)
+
+eigen_sol_mean = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Eigen_sol')
+# plt.boxplot(eigen_sol)
+# plt.pause(0.0001)
+eigen_mean_mae = [np.mean(i) for i in eigen_chaise_mean + eigen_sol_mean]
+eigen_mean_amae_mean = np.mean(eigen_mean_mae)
+eigen_mean_std = np.std(eigen_mean_mae)
+
+# USING EIGEN VALUES x METHOD#
+mypath = '../recordings/2nd take/pcl_eigenvalues/results/db6/x/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+eigen_chaise_x = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Eigen_chaise')
+# plt.boxplot(eigen_chaise)
+# plt.pause(0.0001)
+
+eigen_sol_x = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Eigen_sol')
+# plt.boxplot(eigen_sol)
+# plt.pause(0.0001)
+eigen_x_mae = [np.mean(i) for i in eigen_chaise_x + eigen_sol_x]
+eigen_x_amae_mean = np.mean(eigen_x_mae)
+eigen_x_std = np.std(eigen_x_mae)
+
+# USING EIGEN VALUES y METHOD#
+mypath = '../recordings/2nd take/pcl_eigenvalues/results/db6/y/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+eigen_chaise_y = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Eigen_chaise')
+# plt.boxplot(eigen_chaise)
+# plt.pause(0.0001)
+
+eigen_sol_y = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Eigen_sol')
+# plt.boxplot(eigen_sol)
+# plt.pause(0.0001)
+eigen_y_mae = [np.mean(i) for i in eigen_chaise_y + eigen_sol_y]
+eigen_y_amae_mean = np.mean(eigen_y_mae)
+eigen_y_std = np.std(eigen_y_mae)
+
+
+# USING EIGEN VALUES z METHOD#
+mypath = '../recordings/2nd take/pcl_eigenvalues/results/db6/z/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+eigen_chaise_z = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Eigen_chaise z')
+# plt.boxplot(eigen_chaise)
+# plt.pause(0.0001)
+
+eigen_sol_z = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Eigen_sol')
+# plt.boxplot(eigen_sol)
+# plt.pause(0.0001)
+eigen_z_mae = [np.mean(i) for i in eigen_chaise_z + eigen_sol_z]
+eigen_z_amae_mean = np.mean(eigen_z_mae)
+eigen_z_std = np.std(eigen_z_mae)
+#############################################################################################################
+
+# USING centroid mean VALUES METHOD#
+mypath = '../recordings/2nd take/centroids/results/db6/meanxyz/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+
+centroid_meanxyz_chaise = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Centroid_mean_chaise')
+# plt.boxplot(centroid_meanxyz_chaise)
+# plt.pause(0.0001)
+
+centroid_meanxyz_sol = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Centroid_mean_sol')
+# plt.boxplot(centroid_meanxyz_sol)
+# plt.pause(0.0001)
+
+centroid_meanxyz_mae = [np.mean(i) for i in centroid_meanxyz_chaise + centroid_meanxyz_sol]
+centroid_meanxyz_amae_mean = np.mean(centroid_meanxyz_mae)
+centroid_meanxyz_std = np.std(centroid_meanxyz_mae)
+
+#############################################################################################################
+
+# USING centroid euclidean distance VALUES METHOD#
+mypath = '../recordings/2nd take/centroids/results/db6/euclidean/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+
+centroid_euc_chaise = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Centroid_euc_chaise')
+# plt.boxplot(centroid_euc_chaise)
+# plt.pause(0.0001)
+
+centroid_euc_sol = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Centroid_euc_sol')
+# plt.boxplot(centroid_euc_sol)
+# plt.pause(0.0001)
+centroid_euc_mae = [np.mean(i) for i in centroid_euc_chaise + centroid_euc_sol]
+centroid_euc_amae_mean = np.mean(centroid_euc_mae)
+centroid_euc_std = np.std(centroid_euc_mae)
+#############################################################################################################
+
+# USING centroid x value METHOD#
+mypath = '../recordings/2nd take/centroids/results/db6/x/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+
+centroid_x_chaise = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Centroid_x_chaise')
+# plt.boxplot(centroid_x_chaise)
+# plt.pause(0.0001)
+
+centroid_x_sol = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Centroid_x_sol')
+# plt.boxplot(centroid_x_sol)
+# plt.pause(0.0001)
+
+centroid_x_mae = [np.mean(i) for i in centroid_x_chaise + centroid_x_sol]
+centroid_x_amae_mean = np.mean(centroid_x_mae)
+centroid_x_std = np.std(centroid_x_mae)
+#######################################################################################
+# USING centroid y value VALUES METHOD#
+mypath = '../recordings/2nd take/centroids/results/db6/y/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+
+centroid_y_chaise = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Centroid_y_chaise')
+# plt.boxplot(centroid_y_chaise)
+# plt.pause(0.0001)
+
+centroid_y_sol = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Centroid_y_sol')
+# plt.boxplot(centroid_y_sol)
+# plt.pause(0.0001)
+
+centroid_y_mae = [np.mean(i) for i in centroid_y_chaise + centroid_y_sol]
+centroid_y_amae_mean = np.mean(centroid_y_mae)
+centroid_y_std = np.std(centroid_y_mae)
+#############################################################################################################
+
+# USING centroid z value VALUES METHOD#
+mypath = '../recordings/2nd take/centroids/results/db6/z/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+
+centroid_z_chaise = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Centroid_z_chaise')
+# plt.boxplot(centroid_z_chaise)
+# plt.pause(0.0001)
+
+centroid_z_sol = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Centroid_z_sol')
+# plt.boxplot(centroid_z_sol)
+# plt.pause(0.0001)
+
+centroid_z_mae = [np.mean(i) for i in centroid_z_chaise + centroid_z_sol]
+centroid_z_amae_mean = np.mean(centroid_z_mae)
+centroid_z_std = np.std(centroid_z_mae)
+#############################################################################################################
+#################################################################################3
+###################################################################################
+
+# USING mean mean VALUES METHOD#
+mypath = '../recordings/2nd take/mean_xyz/results/db6/mean_xyz/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+
+mean_meanxyz_chaise = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Mean_mean_chaise mean xyz')
+# plt.boxplot(mean_meanxyz_chaise)
+# plt.pause(0.0001)
+
+mean_meanxyz_sol = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Mean_mean_sol mean xyz')
+# plt.boxplot(mean_meanxyz_sol)
+# plt.pause(0.0001)
+
+mean_meanxyz_mae = [np.mean(i) for i in mean_meanxyz_chaise + mean_meanxyz_sol]
+mean_meanxyz_amae_mean = np.mean(mean_meanxyz_mae)
+mean_meanxyz_std = np.std(mean_meanxyz_mae)
+
+#############################################################################################################
+
+# USING mean euclidean distance VALUES METHOD#
+mypath = '../recordings/2nd take/mean_xyz/results/db6/euclidean/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+
+mean_euc_chaise = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Mean_euc_chaise euclidean')
+# plt.boxplot(mean_euc_chaise)
+# plt.pause(0.0001)
+
+mean_euc_sol = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('Mean_euc_sol euclidean')
+# plt.boxplot(mean_euc_sol)
+# plt.pause(0.0001)
+
+mean_euc_mae = [np.mean(eigen_i) for eigen_i in mean_euc_chaise + mean_euc_sol]
+mean_euc_amae_mean = np.mean(mean_euc_mae)
+mean_euc_std = np.std(mean_euc_mae)
+#############################################################################################################
+
+# USING mean x value METHOD#
+mypath = '../recordings/2nd take/mean_xyz/results/db6/x/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+
+mean_x_chaise = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('Mean_euc_chaise on x')
+# plt.boxplot(mean_x_chaise)
+# plt.pause(0.0001)
+
+mean_x_sol = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
 plt.figure()
-plt.title('Eigen_chaise')
-plt.boxplot(eigen_chaise)
+plt.title('Centroid_euc_sol on x')
+plt.boxplot(mean_x_sol)
 plt.pause(0.0001)
 
-eigen_sol = [pickle.load(open(mypath+file, 'rb')) for file in files if 'SOL' in file]
-plt.figure()
-plt.title('Eigen_sol')
-plt.boxplot(eigen_sol)
-plt.pause(0.0001)
-eigen_mae = [np.mean(eigen_i) for eigen_i in eigen_chaise + eigen_sol]
-eigen_amae_mean = np.mean(eigen_mae)
-eigen_std = np.std(eigen_mae)
+mean_x_mae = [np.mean(eigen_i) for eigen_i in mean_x_chaise + mean_x_sol]
+mean_x_amae_mean = np.mean(mean_x_mae)
+mean_x_std = np.std(mean_x_mae)
+#######################################################################################
+# USING mean y value VALUES METHOD#
+mypath = '../recordings/2nd take/mean_xyz/results/db6/y/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
 
-# Mean vs Eigen comparisons#
+mean_y_chaise = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('mean_y_chaise on y')
+# plt.boxplot(mean_y_chaise)
+# plt.pause(0.0001)
+
+mean_y_sol = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('mean_y_sol on y')
+# plt.boxplot(mean_y_sol)
+# plt.pause(0.0001)
+
+mean_y_mae = [np.mean(i) for i in mean_y_chaise + mean_y_sol]
+mean_y_amae_mean = np.mean(mean_y_mae)
+mean_y_std = np.std(mean_y_mae)
+#############################################################################################################
+
+# USING mean z value VALUES METHOD#
+mypath = '../recordings/2nd take/mean_xyz/results/db6/z/'
+files = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
+
+mean_z_chaise = [pickle.load(open(mypath + file, 'rb')) for file in files if 'CHAISE' in file]
+# plt.figure()
+# plt.title('mean_z_chaise on z')
+# plt.boxplot(mean_z_chaise)
+# plt.pause(0.0001)
+
+mean_z_sol = [pickle.load(open(mypath + file, 'rb')) for file in files if 'SOL' in file]
+# plt.figure()
+# plt.title('mean_z_sol on z')
+# plt.boxplot(mean_z_sol)
+# plt.pause(0.0001)
+
+mean_z_mae = [np.mean(i) for i in mean_z_chaise + mean_z_sol]
+mean_z_amae_mean = np.mean(mean_z_mae)
+mean_z_std = np.std(mean_z_mae)
+#############################################################################################################
+euc = [eigen_euc_mae, mean_euc_mae, centroid_euc_mae]
+
+# Comparaisons PCA#
 plt.figure()
-plt.title('Méthodes comparées')
-plt.boxplot([mean_mae, e_dis_mae, eigen_mae])
-plt.xticks([1, 2, 3], ['Moyenne', 'Euclid', 'Eigen'])
+plt.title('Extraction du mouvement du nuage de point')
+
+box = plt.boxplot(euc, patch_artist=True)
+
+plt.xticks([1, 2, 3], ['PCA', 'Moyenne des points', 'Centroïde'])
 plt.xlabel('Méthodes')
-plt.ylabel('AMAE (BPM)')
+plt.ylabel('MAE (BPM)')
 plt.pause(0.00001)
 
 # Chaise vs Sol#
-chaise_mae = [np.mean(i) for i in mean_chaise + e_dis_chaise + eigen_chaise]
-sol_mae = [np.mean(i) for i in mean_sol + e_dis_sol + eigen_sol]
+chaise_mae = [np.mean(i) for i in centroid_euc_chaise]
+sol_mae = [np.mean(i) for i in centroid_euc_sol]
 chaise_amae = np.mean(chaise_mae)
 chaise_std = np.std(chaise_mae)
 sol_amae = np.mean(sol_mae)
 sol_std = np.std(sol_mae)
 plt.figure()
-plt.title('Positionnement comparé')
+plt.title('Positionnement comparé avec la distance euclidienne du centroïde')
 plt.boxplot([chaise_mae, sol_mae])
 plt.xlabel('Positionnement')
-plt.ylabel('AMAE (BPM)')
+plt.ylabel('MAE (BPM)')
 plt.xticks([1, 2], ['Chaise', 'Au sol'])
 plt.pause(0.00001)
+pickle.dump([chaise_mae, sol_mae], open('centroid_chaise_sol_ae.p', 'wb'))
 assert True
