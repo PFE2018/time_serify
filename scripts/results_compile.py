@@ -131,7 +131,6 @@ centroid_euc_sol = [pickle.load(open(mypath + file, 'rb')) for file in files if 
 # plt.title('Centroid_euc_sol')
 # plt.boxplot(centroid_euc_sol)
 # plt.pause(0.0001)
-
 centroid_euc_mae = [np.mean(i) for i in centroid_euc_chaise + centroid_euc_sol]
 centroid_euc_amae_mean = np.mean(centroid_euc_mae)
 centroid_euc_std = np.std(centroid_euc_mae)
@@ -305,30 +304,32 @@ mean_z_mae = [np.mean(i) for i in mean_z_chaise + mean_z_sol]
 mean_z_amae_mean = np.mean(mean_z_mae)
 mean_z_std = np.std(mean_z_mae)
 #############################################################################################################
+euc = [eigen_euc_mae, mean_euc_mae, centroid_euc_mae]
 
-# Mean vs Eigen comparisons#
+# Comparaisons PCA#
 plt.figure()
-plt.title('Méthodes comparées')
-plt.boxplot([eigen_euc_mae, eigen_mean_mae, eigen_x_mae, eigen_y_mae, eigen_z_mae, centroid_meanxyz_mae, centroid_euc_mae, centroid_x_mae, centroid_y_mae,
-             centroid_z_mae, mean_meanxyz_mae, mean_euc_mae, mean_x_mae, mean_y_mae, mean_z_mae])
-plt.xticks([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 14, 15],
-           ['Eigen_eux', 'Eigen_mean', 'Eigen_x', 'Eigen_y', 'Eigen_z', 'Centroid_xyz', 'Centroid_euc', 'Centr x', 'Centr y', 'Centr z', 'Mean_xyz', 'Mean_euc', 'Mean x', 'Mean y', 'Mean z'])
+plt.title('Extraction du mouvement du nuage de point')
+
+box = plt.boxplot(euc, patch_artist=True)
+
+plt.xticks([1, 2, 3], ['PCA', 'Moyenne des points', 'Centroïde'])
 plt.xlabel('Méthodes')
-plt.ylabel('AMAE (BPM)')
+plt.ylabel('MAE (BPM)')
 plt.pause(0.00001)
 
 # Chaise vs Sol#
-chaise_mae = [np.mean(i) for i in eigen_chaise_euc + eigen_chaise_mean + eigen_chaise_x + eigen_chaise_y + eigen_chaise_z + centroid_euc_chaise + centroid_meanxyz_chaise + centroid_x_chaise + centroid_y_chaise + centroid_z_chaise]
-sol_mae = [np.mean(i) for i in eigen_mean_mae + eigen_x_mae + eigen_y_mae + eigen_z_mae + eigen_euc_mae + centroid_euc_sol + centroid_meanxyz_sol + centroid_x_sol + centroid_y_sol + centroid_z_sol]
+chaise_mae = [np.mean(i) for i in centroid_euc_chaise]
+sol_mae = [np.mean(i) for i in centroid_euc_sol]
 chaise_amae = np.mean(chaise_mae)
 chaise_std = np.std(chaise_mae)
 sol_amae = np.mean(sol_mae)
 sol_std = np.std(sol_mae)
 plt.figure()
-plt.title('Positionnement comparé')
+plt.title('Positionnement comparé avec la distance euclidienne du centroïde')
 plt.boxplot([chaise_mae, sol_mae])
 plt.xlabel('Positionnement')
-plt.ylabel('AMAE (BPM)')
+plt.ylabel('MAE (BPM)')
 plt.xticks([1, 2], ['Chaise', 'Au sol'])
 plt.pause(0.00001)
+pickle.dump([chaise_mae, sol_mae], open('centroid_chaise_sol_ae.p', 'wb'))
 assert True

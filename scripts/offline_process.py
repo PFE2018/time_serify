@@ -117,7 +117,8 @@ class OfflineProcess(object):
         plt.xlabel('Frequency (hz)')
         plt.ylabel('Amplitude z')
         plt.plot(self.freq, self.fft_z)
-
+        plt.subplots_adjust(left=None, bottom=None, right=None, top=None,
+                            wspace=0.5, hspace=0.5)
         plt.pause(0.000001)
 
     # Wavelet processing and show #
@@ -125,7 +126,7 @@ class OfflineProcess(object):
         num_level = int(np.log2(self.largest_base))
         slct_lvl = 3
         euc_dis = get_euclidean_distance(self.interp_x, self.interp_y, self.interp_z)
-        for axis in [self.interp_x, self.interp_y, self.interp_z]:
+        for axis in [euc_dis, euc_dis, euc_dis]:
             wlt = pywt.Wavelet('db6')
             new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
 
@@ -135,13 +136,13 @@ class OfflineProcess(object):
                 for i in range(1, num_level + 1):
                     plt.subplot(4, 3, i)
                     plt.title('Wavelet coefficient ' + str(i))
-                    plt.plot(self.t_i[:200], new_sig[-i][0][:200])
+                    plt.plot(self.t_i, new_sig[-i][0])
                 plt.subplots_adjust(left=None, bottom=None, right=None, top=None,
                                     wspace=0.5, hspace=0.5)
                 plt.pause(0.00001)
 
             # Get peaks-locs, compute interval
-            loc_idx = pk.indexes(new_sig[-slct_lvl][0][:200], min_dist=6, thres=0)
+            loc_idx = pk.indexes(new_sig[-slct_lvl][0], min_dist=6, thres=0)
             if show:
                 # Plot slected wavelet coefficient peaks
                 plt.subplot(4, 3, slct_lvl)
@@ -205,14 +206,14 @@ class OfflineProcess(object):
 
 if __name__ == '__main__':
     data = OfflineProcess()
-    filepath = '../recordings/2nd take/pcl_eigenvalues/'
+    filepath = '../recordings/2nd take/centroids/'
     refpath = '../recordings/2nd take/refs/'
     files = sorted([f for f in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, f))])
     refs = sorted([f for f in os.listdir(refpath) if os.path.isfile(os.path.join(refpath, f))])
     for ref, file in zip(refs, files):
         data.data_import(pickle_name=filepath + file,
                          refname=refpath + ref, show=False)
-        data.wvt_proc(show=True)
+        data.wvt_proc(show=False)
 
         # Get range fitting for kinect values
         kinect_hr_end = min(data.kinect_time[0][-1], data.kinect_time[1][-1], data.kinect_time[2][-1])
@@ -231,13 +232,13 @@ if __name__ == '__main__':
         mean_hr = np.mean(hr, axis=0)
 
         # Plot results
-        # plt.figure()
-        # plt.plot(data.ref_time, data.ref_hr)
-        # plt.plot(data.ref_time, hr_x)
-        # plt.plot(data.ref_time, hr_y)
-        # plt.plot(data.ref_time, hr_z)
-        # plt.legend(['Ground  truth', 'HR x axis', 'HR y axis', 'HR z axis'])  # ['Ground  truth', 'HR z axis']
-        # plt.pause(0.000001)
+        plt.figure()
+        plt.plot(data.ref_time, data.ref_hr)
+        plt.plot(data.ref_time, hr_x)
+        plt.xlabel('Temps (s)')
+        plt.ylabel('Rythme cardiaque (BPM)')
+        plt.legend(['Référence', 'Kinect'])  # ['Ground  truth', 'HR z axis']
+        plt.pause(0.000001)
         # plt.figure()
         # plt.plot(data.ref_time, data.ref_hr)
         # plt.plot(data.ref_time, mean_hr)
@@ -249,7 +250,7 @@ if __name__ == '__main__':
         mean = np.mean(abs_error)
         dev = np.std(abs_error)
         name = file[:-2] + '_z_AE'
-        pickle.dump(abs_error,
-                    open('../recordings/2nd take/pcl_eigenvalues/results/db6/z/'+name + '.p', 'wb'))
+        # pickle.dump(abs_error,
+        #             open('../recordings/2nd take/centroids/results/db6/euclidean/'+name + '.p', 'wb'))
 
-        assert True
+    assert True

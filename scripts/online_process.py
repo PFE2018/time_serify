@@ -18,6 +18,11 @@ def floor_log(num, base):
 
     return base ** int(math.log(num, base))
 
+def get_euclidean_distance(x, y, z):
+    e_dis = []
+    for ix, iy, iz in zip(x, y, z):
+        e_dis.append(np.sqrt(ix ** 2 + iy ** 2 + iz ** 2))
+    return e_dis
 
 class OnlineProcess(object):
     def __init__(self):
@@ -34,57 +39,45 @@ class OnlineProcess(object):
         self.kinect_time = []
 
     # Wavelet processing and show #
-    def wvt_proc(self, show=True):
+    def wvt_proc(self, show=False):
         num_level = int(np.log2(self.largest_base))
-        slct_lvl = 4
-        for axis in self.signals:
-            wlt = pywt.Wavelet('sym8')
-            new_sig = pywt.swt(axis, wavelet=wlt, level=num_level)
+        slct_lvl = 3
 
-            # INSERT FOR LOOP FOR PLOTS
-            if show:
-                plt.figure()
-                for i in range(1, num_level + 1):
-                    plt.subplot(4, 3, i)
-                    plt.title('Wavelet coefficient' + str(i))
-                    plt.plot(self.t_i, new_sig[-i][1])
-                plt.pause(0.00001)
+        euclidean_distance = get_euclidean_distance(self.interp_x, self.interp_y, self.interp_z)
+        wlt = pywt.Wavelet('db6')
+        new_sig = pywt.swt(euclidean_distance, wavelet=wlt, level=num_level)
 
-            # Get peaks-locs, compute interval
-            loc_idx = pk.indexes(new_sig[-slct_lvl][1], min_dist=6)
-            if show:
-                # Plot slected wavelet coefficient peaks
-                plt.subplot(4, 3, slct_lvl)
-                plt.plot(self.t_i[loc_idx], new_sig[-slct_lvl][1][loc_idx])
-                plt.pause(0.000001)
-            peaks = {'Time': loc_idx * 1.0 / 20.0}
-            peaks_df = pd.DataFrame(peaks)
-
-            # Compute mean interval and get heart rate with sliding window
-            hr = (60.0 / (peaks_df.diff().mean().values)).flatten()
-            hr_time = peaks_df.values.flatten()
-
-            if show:
-                # Show analysis
-                plt.figure()
-                plt.plot(hr_time, hr)
-                plt.legend(['Kinect measurement', 'ECG Ground truth'])
-                plt.pause(0.000001)
-
-            return np.mean(hr)
-
-
-    # STFT processing and show #
-    def stft_proc(self, sig, show=True):
-        specgram, t, z = signal.stft(sig, 20, nperseg=200)
-
+        # INSERT FOR LOOP FOR PLOTS
         if show:
             plt.figure()
-            plt.pcolormesh(t, specgram, np.abs(z))
-            plt.title('STFT Magnitude')
-            plt.ylabel('Frequency [Hz]')
-            plt.xlabel('Time [sec]')
+            for i in range(1, num_level + 1):
+                plt.subplot(4, 3, i)
+                plt.title('Wavelet coefficient' + str(i))
+                plt.plot(self.t_i, new_sig[-i][1])
+            plt.pause(0.00001)
+
+        # Get peaks-locs, compute interval
+        loc_idx = pk.indexes(new_sig[-slct_lvl][0], min_dist=6)
+        if show:
+            # Plot slected wavelet coefficient peaks
+            plt.subplot(4, 3, slct_lvl)
+            plt.plot(self.t_i[loc_idx], new_sig[-slct_lvl][0][loc_idx])
             plt.pause(0.000001)
+        peaks = {'Time': loc_idx * 1.0 / 20.0}
+        peaks_df = pd.DataFrame(peaks)
+
+        # Compute mean interval and get heart rate with sliding window
+        hr = (60.0 / (peaks_df.diff().mean().values)).flatten()
+        hr_time = peaks_df.values.flatten()
+
+        if show:
+            # Show analysis
+            plt.figure()
+            plt.plot(hr_time, hr)
+            plt.legend(['Kinect measurement', 'ECG Ground truth'])
+            plt.pause(0.000001)
+
+        return np.mean(hr)
 
 
 if __name__ == '__main__':
