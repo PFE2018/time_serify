@@ -1,11 +1,10 @@
-import pickle
+#!/usr/bin/env python
 import matplotlib.pyplot as plt
-from scipy import signal, interpolate, io
+from scipy import interpolate
 import numpy as np
 import pywt
 import math
 import pandas as pd
-import biosppy as bp
 import peakutils as pk
 
 
