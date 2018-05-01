@@ -13,11 +13,16 @@ This whole project can only run, online and offline, using ROS's middleware. ROS
 ```bash
 pip install tensorflow
 ```
-* **Openpose skeleton detectorimplemented on tensorflow** Install *tf-pose-estimation-1* following fork in in your catkin workspace:
+* **Openpose skeleton detector implemented on tensorflow** Install *tf-pose-estimation-1* following fork in in your catkin workspace:
 ```bash
 cd ~/catkin_ws/src
 git clone https://github.com/PFE2018/tf-pose-estimation-1.git
 ```
+* Also get following dependencies to make sure tfpose_ros is functioning :
+  * video_stream_opencv
+  * image_view
+  * ros_video_recorder : https://github.com/ildoonet/ros-video-recorder
+
 
 * **Head segmentation** Install following head_getter and head_filter packages in your catkin workspace for head segmentation in the point cloud :
 ```bash
@@ -37,7 +42,7 @@ This project aims to detect multiple humans in an 2D image and extract their hea
 ![alt text](https://github.com/PFE2018/time_serify/blob/master/BlockSchemeSoftwareRelease.png?raw=true)
 
 # Example
-To directly run all the online heart rate extraction, run :
+To directly run all the online heart rate extraction uing the kinect camera, run :
 ```bash
 roslaunch time_serify  base.launch
 ```
