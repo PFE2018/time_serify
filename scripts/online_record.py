@@ -20,7 +20,7 @@ class SeriesConverter(object):
         self.t_i = []
         self.data = OnlineProcess()
         self.shift = False
-        self.update = 10
+        self.update = 12
         self.hr = []
         self.hr_t = []
         self.hr_pub = rospy.Publisher("/time_serify/heart_rate", Int64, queue_size=100)
@@ -42,7 +42,7 @@ class SeriesConverter(object):
             print('Update at %s seconds', t)
             # Start shifting
             self.shift = True
-            self.update = t + 2
+            self.update = t + 1
 
             # Interpolate at fixed frequency
             self.t_i = np.linspace(self.timeserie["time"][0], self.timeserie["time"][-1],
@@ -62,11 +62,17 @@ class SeriesConverter(object):
             self.data.interp_x = interp_x[binary_range:]
             self.data.interp_y = interp_y[binary_range:]
             self.data.interp_z = interp_z[binary_range:]
-            # Execute wavelet processing on data
+            # Execute wavelet processing on data and apply rolling mean
             hr = self.data.wvt_proc(show=False)
             self.hr.append(hr)
-            self.hr_t.append(t)
-            self.hr_pub.publish(hr)
+	    self.hr_t.append(t)
+	    if len(self.hr) >10:
+		self.hr = self.hr[1:]
+		self.hr_t = self.hr_t[1:]
+            hr = np.mean(self.hr)
+            # Publish value if it is not NaN
+            if ~np.isnan(hr):
+                self.hr_pub.publish(hr)
             rospy.loginfo("Heart rate is " + str(hr) + "BPM")
             plt.figure(1)
             plt.plot(self.hr_t, self.hr)

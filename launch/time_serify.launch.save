@@ -1,0 +1,3 @@
+<?xml version='1.0'?>
+<launch></launch>
+<node name="online_record" pkg="time_serify" type="online_record.py"/>

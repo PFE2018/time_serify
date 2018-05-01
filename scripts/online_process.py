@@ -52,11 +52,11 @@ class OnlineProcess(object):
             for i in range(1, num_level + 1):
                 plt.subplot(4, 3, i)
                 plt.title('Wavelet coefficient' + str(i))
-                plt.plot(self.t_i, new_sig[-i][1])
+                plt.plot(self.t_i, new_sig[-i][0])
             plt.pause(0.00001)
 
         # Get peaks-locs, compute interval
-        loc_idx = pk.indexes(new_sig[-slct_lvl][0], min_dist=6)
+        loc_idx = pk.indexes(new_sig[-slct_lvl][0], min_dist=6, thres=0.0)
         if show:
             # Plot slected wavelet coefficient peaks
             plt.subplot(4, 3, slct_lvl)
@@ -76,6 +76,8 @@ class OnlineProcess(object):
             plt.legend(['Kinect measurement', 'ECG Ground truth'])
             plt.pause(0.000001)
 
+        if np.isnan(hr):
+            assert True
         return np.mean(hr)
 
 
